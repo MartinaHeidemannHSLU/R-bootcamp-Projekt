@@ -1581,8 +1581,7 @@ US</h1>
 </div>
 
 
-<div id="introduction" class="section level2">
-<h2>Introduction</h2>
+<p>##Background</p>
 <p>Climate change is one of the biggest challenges facing humanity today
 resulting in more frequent and severe weather events, rising sea levels,
 and changes in the amount and pattern of precipitation, to harm to
@@ -1595,21 +1594,160 @@ assistance, providing temporary housing, and assisting with recovery
 efforts. The agency also plays a key role in disaster preparedness and
 risk reduction through programs that help communities develop plans and
 take steps to reduce the impact of future disasters.</p>
+<p>##Description of data set(s)</p>
 <p>FEMA provides various data sets on disasters that occurred in the
-past, some of them going back to the 1960s. For our project we used two
-data sets from FEMA, one with a focus on the type of disaster and one
-containing information on for example how much damage the disaster
-caused. Furthermore, enriched these data sets with geographical
-information on the county level and information on for example
-population per county.</p>
-<p>With the combination of all of this information, we aimed to find
-answers to the following questions:</p>
-<ol style="list-style-type: decimal">
-<li>…</li>
-<li>…</li>
-<li>…</li>
-</ol>
-</div>
+past, some of them going back to the 1960s. For our project we merged
+two data sets from FEMA and enriched them with additional information
+like geographical data (e.g. longitude, latitude) and population size
+per state from Wikipedia. The first data set from FEMA contained among
+other information on the type of disaster (fire, flooding, etc.), the
+state in which the disaster occurred and the dates when it occurred.
+From the second data set, we pulled information on the amount of damage
+each disaster measured in amount of money. Since the second data set
+only goes back to 2002, we decided to do our analysis in the time frame
+of the past 20 years.</p>
+<p>After merging and cleaning the data from the four sources, our final
+data set to do the analysis on looked like this:</p>
+<pre class="r"><code>knitr::kable(head(df.prep.5))</code></pre>
+<table>
+<colgroup>
+<col width="6%" />
+<col width="8%" />
+<col width="5%" />
+<col width="8%" />
+<col width="5%" />
+<col width="6%" />
+<col width="6%" />
+<col width="6%" />
+<col width="6%" />
+<col width="7%" />
+<col width="8%" />
+<col width="9%" />
+<col width="7%" />
+<col width="5%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">Disaster#</th>
+<th align="left">Type</th>
+<th align="left">County</th>
+<th align="left">State</th>
+<th align="right">Latitude</th>
+<th align="right">Longitude</th>
+<th align="right">Damage<span class="math inline">\(|
+Approved\)</span></th>
+<th align="right">Repair$</th>
+<th align="right">Population</th>
+<th align="right">IncomeCapita</th>
+<th align="right">DisasterBegin</th>
+<th align="left">DisasterEnd</th>
+<th align="left">Duration</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1971</td>
+<td align="left">Severe Storm</td>
+<td align="left">Marshall</td>
+<td align="left">Alabama</td>
+<td align="right">34.3670</td>
+<td align="right">-86.3066</td>
+<td align="right">468614.48</td>
+<td align="right">116003.84</td>
+<td align="right">101089.45</td>
+<td align="right">96137</td>
+<td align="right">20382</td>
+<td align="left">2011-04-15</td>
+<td align="left">2011-05-31</td>
+<td align="left">46 days</td>
+</tr>
+<tr class="even">
+<td align="right">4655</td>
+<td align="left">Flood</td>
+<td align="left">Park</td>
+<td align="left">Montana</td>
+<td align="right">45.4884</td>
+<td align="right">-110.5267</td>
+<td align="right">2901.34</td>
+<td align="right">12532.99</td>
+<td align="right">11078.99</td>
+<td align="right">16513</td>
+<td align="right">24611</td>
+<td align="left">2022-06-10</td>
+<td align="left">2022-07-05</td>
+<td align="left">25 days</td>
+</tr>
+<tr class="odd">
+<td align="right">4637</td>
+<td align="left">Tornado</td>
+<td align="left">Cheatham</td>
+<td align="left">Tennessee</td>
+<td align="right">36.2612</td>
+<td align="right">-87.0868</td>
+<td align="right">7753.23</td>
+<td align="right">14653.23</td>
+<td align="right">6344.23</td>
+<td align="right">40539</td>
+<td align="right">23459</td>
+<td align="left">2021-12-10</td>
+<td align="left">2021-12-11</td>
+<td align="left">1 days</td>
+</tr>
+<tr class="even">
+<td align="right">4633</td>
+<td align="left">Tornado</td>
+<td align="left">Jackson</td>
+<td align="left">Arkansas</td>
+<td align="right">35.5992</td>
+<td align="right">-91.2145</td>
+<td align="right">199.50</td>
+<td align="right">199.50</td>
+<td align="right">0.00</td>
+<td align="right">16908</td>
+<td align="right">15609</td>
+<td align="left">2021-12-10</td>
+<td align="left">2021-12-11</td>
+<td align="left">1 days</td>
+</tr>
+<tr class="odd">
+<td align="right">4630</td>
+<td align="left">Tornado</td>
+<td align="left">Lyon</td>
+<td align="left">Kentucky</td>
+<td align="right">37.0191</td>
+<td align="right">-88.0833</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">8226</td>
+<td align="right">22123</td>
+<td align="left">2021-12-10</td>
+<td align="left">2021-12-11</td>
+<td align="left">1 days</td>
+</tr>
+<tr class="even">
+<td align="right">4618</td>
+<td align="left">Hurricane</td>
+<td align="left">Bucks</td>
+<td align="left">Pennsylvania</td>
+<td align="right">40.3370</td>
+<td align="right">-75.1069</td>
+<td align="right">92390.42</td>
+<td align="right">52031.76</td>
+<td align="right">42999.73</td>
+<td align="right">627668</td>
+<td align="right">37466</td>
+<td align="left">2021-08-31</td>
+<td align="left">2021-09-05</td>
+<td align="left">5 days</td>
+</tr>
+</tbody>
+</table>
+<p>##Exploratory Data Analysis</p>
+<p>##Chapter of choice</p>
+<p>##Chapter of choice (Martina)</p>
+<p>##Conclusions</p>
 
 
 
