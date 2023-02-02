@@ -2,16 +2,36 @@
 title: "Occurence of natural disasters in the US"
 author: "Milica Pajkic, Martina Heidemann"
 date: "2023-02-17"
-output: html_document
+output: 
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+editor_options:
+  markdown:
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 6,fig.asp = 0.8, fig.align = 'center', out.width = "60%")
 ```
 
-## Introduction
+## Background
 
 Climate change is one of the biggest challenges facing humanity today resulting in more frequent and severe weather events, rising sea levels, and changes in the amount and pattern of precipitation, to harm to ecosystems, and human health. The Federal Emergency Management Agency (FEMA) is part of Homeland Security in the USA and responsible for coordinating the response to disasters and emergencies, both natural and man-made. FEMA provides support to state and local governments, as well as to individuals affected by disasters, by offering financial assistance, providing temporary housing, and assisting with recovery efforts. The agency also plays a key role in disaster preparedness and risk reduction through programs that help communities develop plans and take steps to reduce the impact of future disasters.
+
+
+```{r LIBRARIES, include=FALSE}
+library(readxl)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(rvest)
+```
+
+##Description of data set(s)
 
 FEMA provides various data sets on disasters that occurred in the past, some of them going back to the 1960s. For our project we used two data sets from FEMA, one with a focus on the type of disaster and one containing information on for example how much damage the disaster caused. Furthermore, enriched these data sets with geographical information on the county level and information on for example population per county. 
 
@@ -21,15 +41,115 @@ With the combination of all of this information, we aimed to find answers to the
 2. ...
 3. ...
 
-```{r LIBRARIES, include=FALSE}
-library()
-library()
-library()
+
+```{r LOAD, include=FALSE}
+##Reading data tables from directory
+df1 <- read.csv("DisasterDeclarationsSummaries.csv")
+df2 <- read.csv("HousingAssistanceOwners.csv")
+UScounties <- read_excel("UScounties.xlsx")
+# Reading in the table from Wikipedia
+page = read_html("https://en.wikipedia.org/wiki/List_of_United_States_counties_by_per_capita_income")
+
+# Obtain the piece of the web page that corresponds to the "wikitable" node
+my.table = html_node(page, ".wikitable")
+# Convert the html table element into a data frame
+my.table = html_table(my.table, fill = TRUE)
+
+```
+
+```{r CLEANING_1, include=FALSE}
+# Extracting and tidying the column "PerCapitaIncome"from the table and adding row names
+x = as.numeric(gsub("\\[.*","",my.table[,4]))
+names(x) = gsub("\\[.*","",my.table[,2])
+# Excluding non-states and averages from the table
+per.capita.income = x[!names(x) %in% c("United States", "Northern Mariana Islands", "Guam", "American Samoa", "Puerto Rico", "U.S. Virgin Islands")]
+
+my.table <- my.table %>% 
+  rename(county = `County or county-equivalent`)
+
+#rename
+df1$designatedArea <- sub("\\(.*", "", df1$designatedArea)
+df2$county <- sub("\\(.*", "", df2$county)
+UScounties$county <- sub("\\(.*", "", UScounties$county)
+```
+
+```{r MERGE, include=FALSE}
+merge_i <- inner_join(x = df1, y = df2, 
+                      by = c('designatedArea' = 'county', 'disasterNumber' = 'disasterNumber'))
+
+merge_unique <- merge_i %>% distinct(disasterNumber,.keep_all = TRUE)
+merge_unique
+
+merge_unique %>% 
+  select(designatedArea, zipCode, state.x) %>% 
+  as_tibble()
+
+UScounties %>% 
+  select(county, county_ascii, state_id) %>% 
+  as_tibble()
+
+merge_unique$designatedArea <- str_remove(string = merge_unique$designatedArea, pattern = " +$")
+
+###left join
+merge_county <- left_join(x = merge_unique, y = UScounties, by = c('designatedArea' = 'county', "state.x" = "state_id"))
+###left join
+merge_capita <- left_join(x = merge_county, y = my.table, by = c('designatedArea' = 'county', "state_name" ="State, federal district or territory"))
+```
+
+``` {r CLEANING_2, include=FALSE}
+#generate better names
+names(merge_capita) <- names(merge_capita) %>%  make.names()
+
+##my.table transforming the data type
+merge_capita$Population <- sapply(merge_capita$Population, function(x) as.numeric(gsub(",", "", x)))
+merge_capita$Number.ofhouseholds <- sapply(merge_capita$Number.ofhouseholds, function(x) as.numeric(gsub(",", "", x)))
+merge_capita$Rank <- sapply(merge_capita$Rank, function(x) as.numeric(gsub(",", "", x)))
+merge_capita$Per.capitaincome <- sapply(merge_capita$Per.capitaincome, function(x) as.numeric(gsub("[$,]", "", x)))
+merge_capita$Medianhouseholdincome <- sapply(merge_capita$Medianhouseholdincome, function(x) as.numeric(gsub("[$,]", "", x)))
+merge_capita$Medianfamilyincome <- sapply(merge_capita$Medianfamilyincome, function(x) as.numeric(gsub("[$,]", "", x)))
+
+##dropping variables not used for our project
+colnames(merge_capita) # show all variables
+df.prep = subset(merge_capita, select = c(disasterNumber, fyDeclared, incidentType, 
+                                          declarationTitle, incidentBeginDate, incidentEndDate,
+                                          designatedArea, totalDamage,
+                                          totalApprovedIhpAmount, repairReplaceAmount,
+                                          state_name, lat, lng, population, Per.capitaincome))
+colnames(df.prep)
+##transform variable to right data type
+df.prep$incidentBeginDate <- str_remove(string = df.prep$incidentBeginDate, pattern = "T00:00:00.000Z")
+df.prep$incidentEndDate <- str_remove(string = df.prep$incidentEndDate, pattern = "T00:00:00.000Z")
+df.prep.1 <- df.prep
+df.prep.1$incidentBeginDate <- as.Date(df.prep.1$incidentBeginDate)
+df.prep.1$incidentEndDate <- as.Date(df.prep.1$incidentEndDate)
+
+df.prep.1$duration <- difftime(df.prep.1$incidentEndDate, df.prep.1$incidentBeginDate, units="days")
+str(df.prep.1)
+
+##drop columns without lang/lat because it is not a US-State (see PR)
+df.prep.2 <- df.prep.1 %>% drop_na(lat)
+
+##change 'incident Type' from character to factor
+df.prep.3 <- df.prep.2
+class(df.prep.3$incidentType) 
+df.prep.3$incidentType <- as.factor(df.prep.3$incidentType) 
+
+class(df.prep.3$state_name) 
+df.prep.3$state_name <- as.factor(df.prep.3$state_name) 
+colnames(df.prep.3)
+#df.prep.3$declaration.title.fac <- as.factor(df.prep.3$declarationTitle) 
+
+#reorder and rename columns to make the dataset more readable and more logically organized
+df.prep.4 <- df.prep.3[,c("disasterNumber","incidentType","designatedArea", "state_name",
+                             "lat", "lng", "totalDamage", "totalApprovedIhpAmount",
+                             "repairReplaceAmount", "population", "Per.capitaincome",
+                             "incidentBeginDate", "incidentEndDate", "duration")]
+
+df.prep.5 <- df.prep.4
+colnames(df.prep.5) <- c("Disaster#", "Type", "County", "State", "Latitude",
+                                "Longitude", "Damage$", "Approved$",
+                                "Repair$", "Population", "IncomeCapita", "DisasterBegin",
+                                "DisasterEnd", "Duration")
 ```
 
 
-```{r CLEANING, include=FALSE}
-
-```
-
-first try. 
