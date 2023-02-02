@@ -1,11 +1,17 @@
 
 ##Data Cleaning
-
+library(urbnmapr)
 library(dplyr)
 library(tidyr)
 library(tidyverse)
 library(rvest)
 library(readxl)
+library(ggplot2)
+library(sf)
+library(mapview)
+
+install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
+                   "ggspatial", "libwgeom", "sf", "rnaturalearth", "rnaturalearthdata"))
 
 
 ##Reading data tables from directory
@@ -118,6 +124,10 @@ df.prep$incidentEndDate <- str_remove(string = df.prep$incidentEndDate, pattern 
 df.prep.1 <- df.prep
 df.prep.1$incidentBeginDate <- as.Date(df.prep.1$incidentBeginDate)
 df.prep.1$incidentEndDate <- as.Date(df.prep.1$incidentEndDate)
+#give the pandemic rows a end date 
+whereToAdd <- is.na(df.prep.1$incidentEndDate)
+df.prep.1$incidentEndDate[whereToAdd] <- as.Date("2023-05-11")
+summary(df.prep.1$incidentEndDate)
 
 df.prep.1$duration <- difftime(df.prep.1$incidentEndDate, df.prep.1$incidentBeginDate, units="days")
 str(df.prep.1)
@@ -150,11 +160,23 @@ colnames(df.prep.5) <- c("Disaster#", "Type", "County", "State", "Latitude",
 
 #graphical analysis
 ##first steps
-boxplot(df.prep.3$totalDamage ~ df.prep.3$incidentType)
+boxplot(df.prep.5$`Damage$` ~ df.prep.5$Type)
 
+#Karte erstellen
+df.prep.5 %>%
+  ggplot(aes(Longitude, Latitude, group = group, fill = IncomeCapita)) +
+  geom_polygon(color = NA) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  labs(fill = "Income Per Capita")
 
+mapview(df.prep.5, xcol = "Longitude", 
+        ycol = "Latitude", crs = 4269, grid = FALSE) #könnten Namen hier hinzufügen
 
-
+ggplot(data = world) +
+  geom_sf() +
+  geom_sf(data = states, fill = NA) + 
+  geom_text(data = states, aes(X, Y, label = ID), size = 5) +
+  coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
 
 
 
