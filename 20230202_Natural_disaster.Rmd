@@ -2,11 +2,19 @@
 title: "Occurence of natural disasters in the US"
 author: "Milica Pajkic, Martina Heidemann"
 date: "2023-02-17"
-output: html_document
+output: 
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+editor_options:
+  markdown:
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 6,fig.asp = 0.8, fig.align = 'center', out.width = "60%")
 ```
 
 ## Introduction
