@@ -1,6 +1,5 @@
 
 ##Data Cleaning
-setwd("/Users/milicapajkic/Documents/GitHub/bootcamp_r/Data")
 
 library(dplyr)
 library(tidyr)
@@ -9,29 +8,27 @@ library(rvest)
 library(readxl)
 
 
-##EINLESEN
-df1 <- read.csv("/Users/milicapajkic/Documents/GitHub/bootcamp_r/Data/DisasterDeclarationsSummaries.csv")
-df2 <- read.csv("/Users/milicapajkic/Documents/GitHub/bootcamp_r/Data/HousingAssistanceOwners.csv")
-UScounties <- read_excel("~/switchdrive/R-bootcamp/UScounties.xlsx")
-
+##Reading data tables from directory
+df1 <- read.csv("DisasterDeclarationsSummaries.csv")
+df2 <- read.csv("HousingAssistanceOwners.csv")
+UScounties <- read_excel("UScounties.xlsx")
 # Reading in the table from Wikipedia
 page = read_html("https://en.wikipedia.org/wiki/List_of_United_States_counties_by_per_capita_income")
+
 # Obtain the piece of the web page that corresponds to the "wikitable" node
 my.table = html_node(page, ".wikitable")
 # Convert the html table element into a data frame
 my.table = html_table(my.table, fill = TRUE)
-# Extracting and tidying a single column from the table and adding row names
+# Extracting and tidying the column "PerCapitaIncome"from the table and adding row names
 x = as.numeric(gsub("\\[.*","",my.table[,4]))
 names(x) = gsub("\\[.*","",my.table[,2])
 # Excluding non-states and averages from the table
 per.capita.income = x[!names(x) %in% c("United States", "Northern Mariana Islands", "Guam", "American Samoa", "Puerto Rico", "U.S. Virgin Islands")]
 
 my.table <- my.table %>% 
-  rename(
-    county = `County or county-equivalent`
-  )
+  rename(county = `County or county-equivalent`)
 
-#umbenen
+#rename
 df1$designatedArea <- sub("\\(.*", "", df1$designatedArea)
 df2$county <- sub("\\(.*", "", df2$county)
 UScounties$county <- sub("\\(.*", "", UScounties$county)
@@ -96,7 +93,7 @@ merge_county <- left_join(x = merge_unique, y = UScounties, by = c('designatedAr
 ###left join
 merge_capita <- left_join(x = merge_county, y = my.table, by = c('designatedArea' = 'county', "state_name" ="State, federal district or territory"))
 
-#make better names
+#generate better names
 names(merge_capita) <- names(merge_capita) %>%  make.names()
 
 ##my.table transforming the data type
@@ -107,17 +104,15 @@ merge_capita$Per.capitaincome <- sapply(merge_capita$Per.capitaincome, function(
 merge_capita$Medianhouseholdincome <- sapply(merge_capita$Medianhouseholdincome, function(x) as.numeric(gsub("[$,]", "", x)))
 merge_capita$Medianfamilyincome <- sapply(merge_capita$Medianfamilyincome, function(x) as.numeric(gsub("[$,]", "", x)))
 
-##dropping Variables
-
-colnames(merge_capita) #all the varialbes
+##dropping variables not used for our project
+colnames(merge_capita) # show all variables
 df.prep = subset(merge_capita, select = c(disasterNumber, fyDeclared, incidentType, 
                                           declarationTitle, incidentBeginDate, incidentEndDate,
-                                          designatedArea, averageFemaInspectedDamage, totalDamage,
-                                          totalApprovedIhpAmount, repairReplaceAmount, rentalAmount,
-                                          state_name, lat, lng, population, Per.capitaincome, Medianhouseholdincome,
-                                          Medianfamilyincome, Number.ofhouseholds) )
-
-##recoding variable to right data type
+                                          designatedArea, totalDamage,
+                                          totalApprovedIhpAmount, repairReplaceAmount,
+                                          state_name, lat, lng, population, Per.capitaincome))
+colnames(df.prep)
+##transform variable to right data type
 df.prep$incidentBeginDate <- str_remove(string = df.prep$incidentBeginDate, pattern = "T00:00:00.000Z")
 df.prep$incidentEndDate <- str_remove(string = df.prep$incidentEndDate, pattern = "T00:00:00.000Z")
 df.prep.1 <- df.prep
@@ -130,15 +125,27 @@ str(df.prep.1)
 ##drop columns without lang/lat because it is not a US-State (see PR)
 df.prep.2 <- df.prep.1 %>% drop_na(lat)
 
-##need to change incidentType from character to factor
+##change 'incident Type' from character to factor
 df.prep.3 <- df.prep.2
 class(df.prep.3$incidentType) 
 df.prep.3$incidentType <- as.factor(df.prep.3$incidentType) 
 
 class(df.prep.3$state_name) 
 df.prep.3$state_name <- as.factor(df.prep.3$state_name) 
+colnames(df.prep.3)
+#df.prep.3$declaration.title.fac <- as.factor(df.prep.3$declarationTitle) 
 
-df.prep.3$declaration.title.fac <- as.factor(df.prep.3$declarationTitle) 
+#reorder and rename columns to make the dataset more readable and more logically organized
+df.prep.4 <- df.prep.3[,c("disasterNumber","incidentType","designatedArea", "state_name",
+                             "lat", "lng", "totalDamage", "totalApprovedIhpAmount",
+                             "repairReplaceAmount", "population", "Per.capitaincome",
+                             "incidentBeginDate", "incidentEndDate", "duration")]
+
+df.prep.5 <- df.prep.4
+colnames(df.prep.5) <- c("Disaster#", "Type", "County", "State", "Latitude",
+                                "Longitude", "Damage$", "Approved$",
+                                "Repair$", "Population", "IncomeCapita", "DisasterBegin",
+                                "DisasterEnd", "Duration")
 
 
 #graphical analysis
