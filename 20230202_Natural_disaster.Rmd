@@ -14,12 +14,20 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 6,fig.asp = 0.8, fig.align = 'center', out.width = "60%")
+knitr::opts_chunk$set(
+	echo = TRUE,
+	fig.align = "center",
+	fig.asp = 0.8,
+	fig.width = 6,
+	message = FALSE,
+	warning = FALSE,
+	out.width = "60%"
+)
 ```
 
-##Background
+## Background
 
-Climate change is one of the biggest challenges facing humanity today resulting in more frequent and severe weather events, rising sea levels, and changes in the amount and pattern of precipitation, to harm to ecosystems, and human health. The Federal Emergency Management Agency (FEMA) is part of Homeland Security in the USA and responsible for coordinating the response to disasters and emergencies, both natural and man-made. FEMA provides support to state and local governments, as well as to individuals affected by disasters, by offering financial assistance, providing temporary housing, and assisting with recovery efforts. The agency also plays a key role in disaster preparedness and risk reduction through programs that help communities develop plans and take steps to reduce the impact of future disasters.
+Climate change is one of the biggest challenges facing humanity today resulting among other effects in more frequent and severe weather events. The Federal Emergency Management Agency (FEMA) is part of Homeland Security in the USA and responsible for coordinating the response to disasters and emergencies, both natural and man-made. FEMA provides support to state and local governments, as well as to individuals affected by disasters, by offering financial assistance, providing temporary housing, and assisting with recovery efforts. The agency also plays a key role in disaster preparedness and risk reduction through programs that help communities develop plans and take steps to reduce the impact of future disasters.
 
 
 ```{r LIBRARIES, include=FALSE}
@@ -33,9 +41,9 @@ library(ggplot2)
 library(plotly)
 ```
 
-##Description of data set(s)
+## Description of data set(s)
 
-FEMA provides various data sets on disasters that occurred in the past, some of them going back to the 1960s. For our project we merged two data sets from FEMA and enriched them with additional information like geographical data (e.g. longitude, latitude) and population size per state from Wikipedia. The first data set from FEMA contained among other information on the type of disaster (fire, flooding, etc.), the state in which the disaster occurred and the dates when it occurred. From the second data set, we pulled information on the amount of damage each disaster measured in amount of money. Since the second data set only goes back to 2002, we decided to do our analysis in the time frame of the past 20 years. 
+FEMA provides various data sets on disasters that occurred in the past, some of them going back to the 1960s. For our project we merged two data sets from FEMA and enriched them with additional information like geographical data (e.g. longitude, latitude) and population size per state from Wikipedia. The first data set from FEMA contains for example information on the type of disaster (fire, flooding, etc.), the state in which the disaster occurred and the dates when it occurred. From the second data set, we pulled information on the amount of damage each disaster caused, measured in amount of money. Since the second data set only goes back to 2002, we decided to do our analysis in the time frame of the past 20 years. 
 
 
 ```{r LOAD, include=FALSE}
@@ -150,13 +158,17 @@ colnames(df.prep.5) <- c("Disaster#", "Type", "County", "State", "Latitude",
 
 After merging and cleaning the data from the four sources, our final data set to do the analysis on looked like this: 
 
-``` {r VIEW}
+```{r echo=FALSE}
 knitr::kable(head(df.prep.5))
 ```
 
-##Exploratory Data Analysis
+## Exploratory Data Analysis
 
-```{r EDA}
+### Relative frequency of disaster types
+
+Displaying the cumulative frequencies of each disaster type relative to each other, we can learn from the stacked bar chart that "severe storms" are by far the commonest disaster type, followed by hurricanes and biological disasters. 
+
+```{r EDA - DisasterType_1, echo=FALSE}
 
 #Bar chart for the type of disaster in percentages
 type <- as.factor(df.prep.5$Type)
@@ -168,8 +180,104 @@ disastertype_bar + scale_fill_brewer(name = "Disaster Type", palette ="Spectral"
 #ggplotly(disastertype_bar)
 ```
 
-##Chapter of choice
+### Distribution of disaster types over time
 
-##Chapter of choice (Martina)
+Various insights can be gained from the time plot below. For example, it looks like for example severe storms happen quite frequently in general except for the years of approximately 2013-2015 and 2017/2018-ish. Furthermore, only one volcanic eruption and one severe ice storm was recorded in the displayed time period. Dam or Levee breaks and biological disasters did not occur between 2000 and 2023. We could hypothesize that fires seemed to last longer in years previous to about 2013 compared to afterwards - maybe due to more efficient ways that were developed to extinguish them. However, in this plot, the duration of almost 500 disasters are shown which might overlap. Since using 500 different colors for each individual disaster might not help much, we would switch to a different way of showing this information, for example an interactive graphic with Shiny. 
 
-##Conclusions
+```{r EDA DisasterType_2, echo=FALSE}
+
+ts.dataframe <- data.frame(DisasterN = df.prep.5$`Disaster#`,
+                           Type = df.prep.5$Type,
+                           Begin = df.prep.5$DisasterBegin,
+                           End = df.prep.5$DisasterEnd)
+
+ggplot(ts.dataframe, aes(x = Begin, xend = End, y = Type, yend = Type)) +
+  geom_segment(size = 5, color = "cyan3") +
+  labs(x = 'Time', y = 'Disaster Type')
+
+```
+
+### Duration per disaster type
+
+Exploring the disaster types a little bit further, we can detect in the boxplot below that fires show the largest variation in terms of duration. Dam or Levee breaks, volcanic eruptions, tornados and severe ice storms are amongst the disasters with the shortest durations. 
+
+```{r EDA Duration, echo=FALSE}
+
+ggplot(df.prep.5, mapping = aes(x = Type, y = Duration)) +
+  geom_boxplot(color = "hotpink4", fill = "hotpink3", alpha = 0.5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "", y = "Duration")
+
+```
+
+### Damage per state
+
+To analyse the data on damage, we first took a look at the distribution of the data points. The histogram indicated a right skewed distribution. 
+
+```{r EDA Damage, echo=FALSE}
+
+ggplot(data = df.prep.5, 
+       mapping = aes(x = Damage, fill = '')) +
+  geom_histogram(show.legend = FALSE) +
+  scale_x_continuous(limits = c(0, 12000)) +
+  scale_y_continuous(limits = c(0, 20)) +
+  scale_fill_manual(values = c('cyan4')) +
+  theme_minimal()
+
+```
+Also, the difference between the individual damage amounts are quite large which makes it hard to work with. Therefore, we took the logarithm of the data, which resulted in displaying a normal distribution: 
+
+```{r echo=FALSE}
+ggplot(data = df.prep.5, 
+       mapping = aes(x = log(Damage), fill = '')) +
+  geom_histogram(show.legend = FALSE) +
+  labs(x = 'Damage (log)', y = 'Count') +
+  scale_fill_manual(values = c('deepskyblue4')) +
+  theme_minimal()
+```
+With the transformed data, we could generate a plot showing the damage disasters have cause per state in the US over the past 20 years:
+
+```{r echo=FALSE}
+
+us_map <- map_data("state")
+state_dam <- df.prep.5 %>% group_by(State) %>% 
+  summarize(damage = sum(Damage))
+state_dam <- data.frame(state_dam)
+state_dam$State <- tolower(state_dam$State)
+
+map_dam <- left_join(x = us_map, y = state_dam, by = c('region' = 'State'))
+
+map_dam$damage2 <- log(map_dam$damage)
+
+ggplot() +
+  geom_polygon(map_dam, mapping = aes(x = long, y = lat, group = group, fill = damage2)) +
+  labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
+  coord_quickmap()
+```
+
+### Population per state
+
+The following map shows the population per state. Similar to above, we are using the log-transformed data. 
+
+```{r echo=FALSE}
+us_map <- map_data("state")
+state_pop <- df.prep.5 %>% group_by(State) %>% 
+  summarize(population = sum(Population))
+state_pop <- data.frame(state_pop)
+state_pop$State <- tolower(state_pop$State)
+
+map_pop <- left_join(x = us_map, y = state_pop, by = c('region' = 'State'))
+map_pop$population2 <- log(map_pop$population)
+
+ggplot() +
+  geom_polygon(map_pop, mapping = aes(x = long, y = lat, group = group, fill = population2)) +
+  labs(x = 'Longitude', y = 'Latitude', fill = 'Population') +
+  coord_quickmap()
+
+```
+
+## Chapter of choice
+
+## Chapter of choice (Martina)
+
+## Conclusions
