@@ -48,6 +48,10 @@ library(tidyverse)
 library(rvest)
 library(ggplot2)
 library(plotly)
+library(hrbrthemes)
+library(widgetframe)
+library(colormap)
+library(ggiraph)
 ```
 
 ## Description of data set(s)
@@ -237,9 +241,8 @@ Exploring the disaster types a little bit further, we can detect in the
 boxplot below that fires show the largest variation in terms of
 duration. It is also the one with the highest median (speaking of
 duration). Next to the natural catastroph fire, earthquakes have the
-second highest median. Dam or Levee breaks, volcanic eruptions, tornados
-and severe ice storms are amongst the disasters with the shortest
-durations.
+second highest Dam or Levee breaks, volcanic eruptions, tornados and
+severe ice storms are amongst the disasters with the shortest durations.
 
 ```{r EDA Duration, echo=FALSE}
 
@@ -284,6 +287,7 @@ With the transformed data, we could generate a plot showing the damage
 disasters have cause per state in the US over the past 20 years:
 
 ```{r echo=FALSE}
+knitr::knit_print
 
 us_map <- map_data("state")
 state_dam <- df.prep.5 %>% group_by(State) %>% 
@@ -294,11 +298,36 @@ state_dam$State <- tolower(state_dam$State)
 map_dam <- left_join(x = us_map, y = state_dam, by = c('region' = 'State'))
 
 map_dam$damage2 <- log(map_dam$damage)
+map_dam <- map_dam[is.finite(map_dam$damage2),]
+write.csv(map_dam, "map_dam.csv")
 
-ggplot() +
-  geom_polygon(map_dam, mapping = aes(x = long, y = lat, group = group, fill = damage2)) +
+
+# ggplot() +
+#   geom_polygon(map_dam, mapping = aes(x = long, y = lat, group = group, fill = damage2)) +
+#   labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
+#   coord_quickmap() +
+#   scale_fill_gradient(limits = c(min(map_dam$damage2), max(map_dam$damage2)),
+#                       breaks = c(min(map_dam$damage2), max(map_dam$damage2)),
+#                       labels = c("Low", "High"), na.value = "grey50")
+
+
+g <- ggplot(map_dam) +
+  geom_polygon_interactive(
+    color='black',
+    aes(x = long, y = lat, group = group, fill = damage2,
+                                      tooltip=sprintf("%s<br/>%s",region,damage))) +
   labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
-  coord_quickmap()
+  coord_quickmap() +
+  # scale_fill_gradient(limits = c(min(map_dam$damage2), max(map_dam$damage2)),
+  #                   breaks = c(min(map_dam$damage2), max(map_dam$damage2)),
+  #                  labels = c("Low", "High"), na.value = "grey50") +
+  hrbrthemes::theme_ipsum() +
+  colormap::scale_fill_colormap(
+    colormap=colormap::colormaps$copper, reverse = T) +
+  labs(title='Internet Usage in Africa in 2015', subtitle='As Percent of Population',
+       caption='Source: World Bank Open Data.')
+
+widgetframe::frameWidget(ggiraph(code=print(g)))
 ```
 
 ### Population per state
@@ -321,6 +350,22 @@ ggplot() +
   labs(x = 'Longitude', y = 'Latitude', fill = 'Population') +
   coord_quickmap()
 
+```
+
+### Damage vs. approved
+
+```{r}
+diff_approved <- data.frame(DisasterN = df.prep.5$`Disaster#`,
+                           Type = df.prep.5$Type,
+                           Duration = df.prep.5$Duration,
+                           Damage = df.prep.5$Damage,
+                           Approved = df.prep.5$Approved)
+diff_approved$difference <- diff_approved$Damage - diff_approved$Approved
+
+ggplot(diff_approved, mapping = aes(x = Type, y = difference)) +
+  geom_boxplot(color = "green4", fill = "green", alpha = 0.5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "", y = "Difference Damage and Approved $")
 ```
 
 ## Chapter of choice
