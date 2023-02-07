@@ -27,8 +27,17 @@ knitr::opts_chunk$set(
 
 ## Background
 
-Climate change is one of the biggest challenges facing humanity today resulting among other effects in more frequent and severe weather events. The Federal Emergency Management Agency (FEMA) is part of Homeland Security in the USA and responsible for coordinating the response to disasters and emergencies, both natural and man-made. FEMA provides support to state and local governments, as well as to individuals affected by disasters, by offering financial assistance, providing temporary housing, and assisting with recovery efforts. The agency also plays a key role in disaster preparedness and risk reduction through programs that help communities develop plans and take steps to reduce the impact of future disasters.
-
+Climate change is one of the biggest challenges facing humanity today
+resulting among other effects in more frequent and severe weather
+events. The Federal Emergency Management Agency (FEMA) is part of
+Homeland Security in the USA and responsible for coordinating the
+response to disasters and emergencies, both natural and man-made. FEMA
+provides support to state and local governments, as well as to
+individuals affected by disasters, by offering financial assistance,
+providing temporary housing, and assisting with recovery efforts. The
+agency also plays a key role in disaster preparedness and risk reduction
+through programs that help communities develop plans and take steps to
+reduce the impact of future disasters.
 
 ```{r LIBRARIES, include=FALSE}
 library(readxl)
@@ -43,8 +52,17 @@ library(plotly)
 
 ## Description of data set(s)
 
-FEMA provides various data sets on disasters that occurred in the past, some of them going back to the 1960s. For our project we merged two data sets from FEMA and enriched them with additional information like geographical data (e.g. longitude, latitude) and population size per state from Wikipedia. The first data set from FEMA contains for example information on the type of disaster (fire, flooding, etc.), the state in which the disaster occurred and the dates when it occurred. From the second data set, we pulled information on the amount of damage each disaster caused, measured in amount of money. Since the second data set only goes back to 2002, we decided to do our analysis in the time frame of the past 20 years. 
-
+FEMA provides various data sets on disasters that occurred in the past,
+some of them going back to the 1960s. For our project we merged two data
+sets from FEMA and enriched them with additional information like
+geographical data (e.g. longitude, latitude) and population size per
+state from Wikipedia. The first data set from FEMA contains for example
+information on the type of disaster (fire, flooding, etc.), the state in
+which the disaster occurred and the dates when it occurred. From the
+second data set, we pulled information on the amount of damage each
+disaster caused, measured in amount of money. Since the second data set
+only goes back to 2002, we decided to do our analysis in the time frame
+of the past 20 years.
 
 ```{r LOAD, include=FALSE}
 ##Reading data tables from directory
@@ -100,7 +118,7 @@ merge_county <- left_join(x = merge_unique, y = UScounties, by = c('designatedAr
 merge_capita <- left_join(x = merge_county, y = my.table, by = c('designatedArea' = 'county', "state_name" ="State, federal district or territory"))
 ```
 
-``` {r CLEANING_2, include=FALSE}
+```{r CLEANING_2, include=FALSE}
 #generate better names
 names(merge_capita) <- names(merge_capita) %>%  make.names()
 
@@ -156,7 +174,8 @@ colnames(df.prep.5) <- c("Disaster#", "Type", "County", "State", "Latitude",
                                 "DisasterEnd", "Duration")
 ```
 
-After merging and cleaning the data from the four sources, our final data set to do the analysis on looked like this: 
+After merging and cleaning the data from the four sources, our final
+data set to do the analysis on looked like this:
 
 ```{r echo=FALSE}
 knitr::kable(head(df.prep.5))
@@ -166,7 +185,10 @@ knitr::kable(head(df.prep.5))
 
 ### Relative frequency of disaster types
 
-Displaying the cumulative frequencies of each disaster type relative to each other, we can learn from the stacked bar chart that "severe storms" are by far the commonest disaster type, followed by hurricanes and biological disasters. 
+Displaying the cumulative frequencies of each disaster type relative to
+each other, we can learn from the stacked bar chart that "severe storms"
+are by far the commonest disaster type, followed by hurricanes and
+biological disasters.
 
 ```{r EDA - DisasterType_1, echo=FALSE}
 
@@ -182,7 +204,19 @@ disastertype_bar + scale_fill_brewer(name = "Disaster Type", palette ="Spectral"
 
 ### Distribution of disaster types over time
 
-Various insights can be gained from the time plot below. For example, it looks like for example severe storms happen quite frequently in general except for the years of approximately 2013-2015 and 2017/2018-ish. Furthermore, only one volcanic eruption and one severe ice storm was recorded in the displayed time period. Dam or Levee breaks and biological disasters did not occur between 2000 and 2023. We could hypothesize that fires seemed to last longer in years previous to about 2013 compared to afterwards - maybe due to more efficient ways that were developed to extinguish them. However, in this plot, the duration of almost 500 disasters are shown which might overlap. Since using 500 different colors for each individual disaster might not help much, we would switch to a different way of showing this information, for example an interactive graphic with Shiny. 
+Various insights can be gained from the time plot below. For example, it
+looks like for example severe storms happen quite frequently in general
+except for the years of approximately 2013-2015 and 2017/2018-ish.
+Furthermore, only one volcanic eruption and one severe ice storm was
+recorded in the displayed time period. Dam or Levee breaks and
+biological disasters did not occur between 2000 and 2023. We could
+hypothesize that fires seemed to last longer in years previous to about
+2013 compared to afterwards - maybe due to more efficient ways that were
+developed to extinguish them. However, in this plot, the duration of
+almost 500 disasters are shown which might overlap. Since using 500
+different colors for each individual disaster might not help much, we
+would switch to a different way of showing this information, for example
+an interactive graphic with Shiny.
 
 ```{r EDA DisasterType_2, echo=FALSE}
 
@@ -199,7 +233,13 @@ ggplot(ts.dataframe, aes(x = Begin, xend = End, y = Type, yend = Type)) +
 
 ### Duration per disaster type
 
-Exploring the disaster types a little bit further, we can detect in the boxplot below that fires show the largest variation in terms of duration. Dam or Levee breaks, volcanic eruptions, tornados and severe ice storms are amongst the disasters with the shortest durations. 
+Exploring the disaster types a little bit further, we can detect in the
+boxplot below that fires show the largest variation in terms of
+duration. It is also the one with the highest median (speaking of
+duration). Next to the natural catastroph fire, earthquakes have the
+second highest median. Dam or Levee breaks, volcanic eruptions, tornados
+and severe ice storms are amongst the disasters with the shortest
+durations.
 
 ```{r EDA Duration, echo=FALSE}
 
@@ -212,7 +252,8 @@ ggplot(df.prep.5, mapping = aes(x = Type, y = Duration)) +
 
 ### Damage per state
 
-To analyse the data on damage, we first took a look at the distribution of the data points. The histogram indicated a right skewed distribution. 
+To analyse the data on damage, we first took a look at the distribution
+of the data points. The histogram indicated a right skewed distribution.
 
 ```{r EDA Damage, echo=FALSE}
 
@@ -225,7 +266,10 @@ ggplot(data = df.prep.5,
   theme_minimal()
 
 ```
-Also, the difference between the individual damage amounts are quite large which makes it hard to work with. Therefore, we took the logarithm of the data, which resulted in displaying a normal distribution: 
+
+Also, the difference between the individual damage amounts are quite
+large which makes it hard to work with. Therefore, we took the logarithm
+of the data, which resulted in displaying a normal distribution:
 
 ```{r echo=FALSE}
 ggplot(data = df.prep.5, 
@@ -235,7 +279,9 @@ ggplot(data = df.prep.5,
   scale_fill_manual(values = c('deepskyblue4')) +
   theme_minimal()
 ```
-With the transformed data, we could generate a plot showing the damage disasters have cause per state in the US over the past 20 years:
+
+With the transformed data, we could generate a plot showing the damage
+disasters have cause per state in the US over the past 20 years:
 
 ```{r echo=FALSE}
 
@@ -257,7 +303,8 @@ ggplot() +
 
 ### Population per state
 
-The following map shows the population per state. Similar to above, we are using the log-transformed data. 
+The following map shows the population per state. Similar to above, we
+are using the log-transformed data.
 
 ```{r echo=FALSE}
 us_map <- map_data("state")
