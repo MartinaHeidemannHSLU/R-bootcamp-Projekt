@@ -368,6 +368,12 @@ ggplot(diff_approved, mapping = aes(x = Type, y = difference)) +
   labs(x = "", y = "Difference Damage and Approved $")
 ```
 
+### Approved and actually used 
+
+```{r}
+
+```
+
 ## Chapter of choice
 
 ## Chapter of choice (Martina)
