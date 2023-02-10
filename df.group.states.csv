@@ -1,0 +1,177 @@
+"","State","Type","number_sightings"
+"1","Alabama","Biological",1
+"2","Alabama","Hurricane",5
+"3","Alabama","Severe Storm",13
+"4","Alabama","Tornado",1
+"5","Alaska","Biological",1
+"6","Alaska","Earthquake",2
+"7","Alaska","Severe Storm",2
+"8","Arizona","Biological",1
+"9","Arkansas","Biological",1
+"10","Arkansas","Flood",1
+"11","Arkansas","Severe Storm",11
+"12","Arkansas","Tornado",2
+"13","California","Biological",1
+"14","California","Earthquake",2
+"15","California","Fire",11
+"16","California","Flood",1
+"17","California","Severe Storm",2
+"18","Colorado","Biological",1
+"19","Colorado","Fire",1
+"20","Colorado","Flood",1
+"21","Colorado","Severe Storm",1
+"22","Connecticut","Biological",1
+"23","Connecticut","Hurricane",2
+"24","Connecticut","Severe Storm",2
+"25","Delaware","Biological",1
+"26","Delaware","Hurricane",2
+"27","District of Columbia","Biological",1
+"28","District of Columbia","Hurricane",1
+"29","Florida","Biological",1
+"30","Florida","Hurricane",13
+"31","Florida","Other",1
+"32","Florida","Severe Storm",8
+"33","Georgia","Biological",1
+"34","Georgia","Hurricane",4
+"35","Georgia","Severe Storm",8
+"36","Georgia","Tornado",1
+"37","Hawaii","Biological",1
+"38","Hawaii","Earthquake",1
+"39","Hawaii","Flood",2
+"40","Hawaii","Severe Storm",1
+"41","Hawaii","Volcanic Eruption",1
+"42","Idaho","Biological",1
+"43","Illinois","Biological",1
+"44","Illinois","Flood",2
+"45","Illinois","Severe Storm",9
+"46","Illinois","Tornado",1
+"47","Indiana","Biological",1
+"48","Indiana","Flood",1
+"49","Indiana","Severe Storm",11
+"50","Indiana","Tornado",1
+"51","Iowa","Biological",1
+"52","Iowa","Flood",2
+"53","Iowa","Severe Storm",5
+"54","Kansas","Biological",1
+"55","Kansas","Severe Storm",3
+"56","Kentucky","Biological",1
+"57","Kentucky","Flood",3
+"58","Kentucky","Severe Storm",14
+"59","Kentucky","Tornado",1
+"60","Louisiana","Biological",1
+"61","Louisiana","Flood",3
+"62","Louisiana","Hurricane",10
+"63","Louisiana","Severe Ice Storm",1
+"64","Louisiana","Severe Storm",3
+"65","Louisiana","Tornado",1
+"66","Maine","Biological",1
+"67","Maine","Flood",1
+"68","Maine","Severe Storm",2
+"69","Maryland","Biological",2
+"70","Maryland","Hurricane",2
+"71","Massachusetts","Biological",1
+"72","Massachusetts","Flood",1
+"73","Massachusetts","Hurricane",1
+"74","Massachusetts","Severe Storm",3
+"75","Massachusetts","Tornado",1
+"76","Michigan","Biological",1
+"77","Michigan","Dam/Levee Break",1
+"78","Michigan","Flood",1
+"79","Michigan","Severe Storm",3
+"80","Minnesota","Biological",1
+"81","Minnesota","Flood",1
+"82","Minnesota","Severe Storm",3
+"83","Mississippi","Biological",1
+"84","Mississippi","Flood",2
+"85","Mississippi","Hurricane",6
+"86","Mississippi","Severe Storm",13
+"87","Mississippi","Tornado",1
+"88","Missouri","Biological",1
+"89","Missouri","Flood",5
+"90","Missouri","Severe Storm",13
+"91","Montana","Biological",1
+"92","Montana","Flood",1
+"93","Montana","Severe Storm",1
+"94","Nebraska","Biological",1
+"95","Nebraska","Flood",1
+"96","Nebraska","Severe Storm",2
+"97","Nevada","Biological",1
+"98","Nevada","Severe Storm",1
+"99","New Hampshire","Biological",1
+"100","New Hampshire","Hurricane",1
+"101","New Hampshire","Severe Storm",3
+"102","New Jersey","Biological",1
+"103","New Jersey","Hurricane",3
+"104","New Jersey","Severe Storm",6
+"105","New Mexico","Biological",1
+"106","New Mexico","Fire",1
+"107","New Mexico","Severe Storm",1
+"108","New York","Biological",1
+"109","New York","Hurricane",3
+"110","New York","Severe Ice Storm",1
+"111","New York","Severe Storm",11
+"112","North Carolina","Biological",1
+"113","North Carolina","Hurricane",7
+"114","North Carolina","Severe Storm",3
+"115","North Dakota","Biological",1
+"116","North Dakota","Flood",1
+"117","North Dakota","Severe Storm",1
+"118","Ohio","Biological",1
+"119","Ohio","Severe Storm",10
+"120","Ohio","Tornado",2
+"121","Oklahoma","Biological",1
+"122","Oklahoma","Fire",3
+"123","Oklahoma","Severe Ice Storm",1
+"124","Oklahoma","Severe Storm",12
+"125","Oklahoma","Tornado",1
+"126","Oregon","Biological",1
+"127","Oregon","Fire",1
+"128","Oregon","Flood",1
+"129","Oregon","Severe Storm",1
+"130","Pennsylvania","Biological",1
+"131","Pennsylvania","Flood",1
+"132","Pennsylvania","Hurricane",3
+"133","Pennsylvania","Severe Storm",6
+"134","Rhode Island","Biological",1
+"135","Rhode Island","Hurricane",1
+"136","Rhode Island","Severe Storm",1
+"137","South Carolina","Biological",1
+"138","South Carolina","Flood",1
+"139","South Carolina","Hurricane",4
+"140","South Carolina","Severe Storm",1
+"141","South Dakota","Biological",1
+"142","South Dakota","Flood",2
+"143","South Dakota","Severe Storm",2
+"144","Tennessee","Biological",1
+"145","Tennessee","Fire",1
+"146","Tennessee","Flood",1
+"147","Tennessee","Severe Storm",10
+"148","Tennessee","Tornado",3
+"149","Texas","Biological",1
+"150","Texas","Fire",2
+"151","Texas","Flood",6
+"152","Texas","Hurricane",6
+"153","Texas","Other",1
+"154","Texas","Severe Ice Storm",1
+"155","Texas","Severe Storm",7
+"156","Utah","Biological",1
+"157","Utah","Earthquake",1
+"158","Vermont","Biological",1
+"159","Vermont","Hurricane",1
+"160","Vermont","Severe Storm",2
+"161","Virginia","Biological",1
+"162","Virginia","Earthquake",1
+"163","Virginia","Hurricane",2
+"164","Virginia","Severe Storm",5
+"165","Washington","Biological",1
+"166","Washington","Flood",1
+"167","Washington","Severe Storm",3
+"168","West Virginia","Biological",1
+"169","West Virginia","Flood",3
+"170","West Virginia","Severe Storm",13
+"171","Wisconsin","Biological",1
+"172","Wisconsin","Flood",1
+"173","Wisconsin","Severe Storm",4
+"174","Wyoming","Biological",1
+"175","Wyoming","Flood",1
+"176","Wyoming","Tornado",1

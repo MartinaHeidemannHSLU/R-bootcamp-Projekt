@@ -495,16 +495,39 @@ b.rep+
 ### Frequency of Disaster Types
 
 ```{r}
-df.group.states <- df.prep.5 %>% group_by(County)  %>%
+df.group.states <- df.prep.5 %>% group_by(County, State)  %>%
                     summarise(NumberDisaster = count(Type),
                               .groups = 'drop')
 ```
 
 ```{r}
-df.group.states <- df.prep.5 %>% 
-  group_by(State, Type) %>% 
+DF2 <- df.prep.5 %>%
+   select(County, Longitude, Latitude, State)
+
+df.group.county <- df.prep.5 %>% 
+  group_by(County, State, Type) %>% 
   summarize(number_sightings = n())
 
+df.county.2 <- left_join(df.group.county, DF2, by = c("County", "State"))
+
+df.county.2 <- df.county.2[!duplicated(df.county.2), ]
+
+#write.csv(df.group.county, "df.group.states.csv")
+
+library(usmap)
+library(ggplot2)
+
+plot_usmap(regions = "counties") + 
+  labs(title = "US Counties",
+       subtitle = "This is a blank map of the counties of the United States.") + 
+  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+```
+
+```{r}
+plot_usmap(data = df.county.2, values = "number_sightings", color = "red") + 
+  scale_fill_continuous(
+    low = "white", high = "red", name = "Number of Sightings", label = scales::comma
+  ) + theme(legend.position = "right")
 ```
 
 ## Model
