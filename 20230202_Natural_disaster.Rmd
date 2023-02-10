@@ -52,6 +52,7 @@ library(hrbrthemes)
 library(widgetframe)
 library(colormap)
 library(ggiraph)
+library(ggpubr)
 ```
 
 ## Description of data set(s)
@@ -302,15 +303,17 @@ map_dam <- map_dam[is.finite(map_dam$damage2),]
 write.csv(map_dam, "map_dam.csv")
 
 
-# ggplot() +
-#   geom_polygon(map_dam, mapping = aes(x = long, y = lat, group = group, fill = damage2)) +
-#   labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
-#   coord_quickmap() +
-#   scale_fill_gradient(limits = c(min(map_dam$damage2), max(map_dam$damage2)),
-#                       breaks = c(min(map_dam$damage2), max(map_dam$damage2)),
-#                       labels = c("Low", "High"), na.value = "grey50")
+ggplot() +
+  geom_polygon(map_dam, mapping = aes(x = long, y = lat, group = group, fill = damage2)) +
+  labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
+  coord_quickmap() +
+  scale_fill_gradient(limits = c(min(map_dam$damage2), max(map_dam$damage2)),
+                      breaks = c(min(map_dam$damage2), max(map_dam$damage2)),
+                      labels = c("Low", "High"), na.value = "grey50")
 
+```
 
+```{r}
 g <- ggplot(map_dam) +
   geom_polygon_interactive(
     color='black',
@@ -354,6 +357,22 @@ ggplot() +
 
 ### Damage vs. approved
 
+Hier will ich zwei Volcanic ausschliessen
+
+Damage muss ich logarithmieren
+
+Even with the changes in bin we can see a stark right skewedness. The
+first step to change right skewedness is to log-transform it.
+
+With this caculation: damage - approved it is visible where the cost of
+damage has been adequately given and where the monetary help has come
+short. If the difference is negative, then more money has been approved
+than there is damage. If it is positive, then the allocation of approved
+money is smaller than the damage and therefore, not enough money has
+been given for help.
+
+In the histogram it is clearly seen, that
+
 ```{r}
 diff_approved <- data.frame(DisasterN = df.prep.5$`Disaster#`,
                            Type = df.prep.5$Type,
@@ -362,19 +381,144 @@ diff_approved <- data.frame(DisasterN = df.prep.5$`Disaster#`,
                            Approved = df.prep.5$Approved)
 diff_approved$difference <- diff_approved$Damage - diff_approved$Approved
 
-ggplot(diff_approved, mapping = aes(x = Type, y = difference)) +
-  geom_boxplot(color = "green4", fill = "green", alpha = 0.5) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(x = "", y = "Difference Damage and Approved $")
+summary(diff_approved$difference)
+
 ```
 
-### Approved and actually used 
+```{r}
+hist.df <- data.frame(Damage = df.prep.5$Damage,
+                      Approved = df.prep.5$Approved)
+summary(hist.df)
+```
+
+```{r}
+ hist.df %>% 
+      pivot_longer(everything()) %>%
+      ggplot(aes(x = value, fill = name)) +
+      geom_histogram(position = "identity", alpha = 0.5) +
+     scale_x_continuous(limits = c(0, 300000)) +
+     scale_y_continuous(limits = c(0, 70))
+```
+
+```{r}
+hist.app.log.df <- data.frame(Damage = log(df.prep.5$Damage),
+                      Approved = log(df.prep.5$Approved))
+hist.app.log.df %>% 
+      pivot_longer(everything()) %>%
+      ggplot(aes(x = value, fill = name)) +
+      geom_histogram(position = "identity", alpha = 0.5)
+```
+
+```{r}
+boxplot.approved.df <- data.frame(Damage = log(df.prep.5$Damage),
+                      Approved = log(df.prep.5$Approved),
+                      Type = df.prep.5$Type)
+
+boxplot.approved.num <- boxplot.approved.df %>% 
+  filter_if(~is.numeric(.), all_vars(!is.infinite(.)))
+
+b.app.inf <- boxplot.approved.df %>%
+  pivot_longer(Damage:Approved, names_to = "Names", values_to = "values") %>%
+  ggplot(aes(y = values, x = Type, fill = Names))+
+  geom_boxplot()
+
+b.app <- boxplot.approved.num %>%
+  pivot_longer(Damage:Approved, names_to = "Names", values_to = "values") %>%
+  ggplot(aes(y = values, x = Type, fill = Names))+
+  geom_boxplot()
+
+ggarrange(b.app.inf, b.app, 
+          labels = c("With Infinite Numbers", "Without Infinite Number"),
+          ncol = 1, nrow = 2)
+```
+
+### Approved and actually used (repair)
+
+```{r}
+repair.short.df <- data.frame(Approved = df.prep.5$Approved, 
+                              Repair = df.prep.5$Repair)
+summary(repair.short.df)
+```
+
+```{r}
+ repair.short.df %>% 
+      pivot_longer(everything()) %>%
+      ggplot(aes(x = value, fill = name)) +
+      geom_histogram(position = "identity", alpha = 0.5) +
+     scale_x_continuous(limits = c(0, 300000)) +
+     scale_y_continuous(limits = c(0, 70))
+```
+
+```{r}
+repair.log.df <- data.frame(Approved = log(df.prep.5$Approved),
+                            Repair = log(df.prep.5$Repair))
+repair.log.df %>% 
+      pivot_longer(everything()) %>%
+      ggplot(aes(x = value, fill = name)) +
+      geom_histogram(position = "identity", alpha = 0.5)
+```
+
+```{r}
+boxplot.repair.df <- data.frame(ApprovedLog = log(df.prep.5$Approved),
+                               RepairLog = log(df.prep.5$Repair),
+                      Type = df.prep.5$Type)
+
+boxplot.repair.num.df <- boxplot.repair.df %>% 
+  filter_if(~is.numeric(.), all_vars(!is.infinite(.)))
+
+b.rep.inf <- boxplot.repair.num.df %>%
+  pivot_longer(ApprovedLog:RepairLog, names_to = "Names", values_to = "values") %>%
+  ggplot(aes(y = values, x = Type, fill = Names))+
+  geom_boxplot() + 
+  facet_wrap(~Type, scale="free")+
+  ggtitle('Approved and Repair Amount logarthmized without Inf Rows')
+b.rep.inf + theme(
+  plot.title = element_text(size=18, face="bold.italic"),
+  axis.text.x=element_blank())
+
+
+b.rep <- boxplot.repair.df %>%
+  pivot_longer(ApprovedLog:RepairLog, names_to = "Names", values_to = "values") %>%
+  ggplot(aes(y = values, x = Type, fill = Names))+
+  geom_boxplot() +
+  facet_wrap(~Type, scale="free")+
+  ggtitle('Approved and Repair Amount logarthmized with Inf Rows')
+b.rep+
+  theme(
+  plot.title = element_text(color = 'red',size=18, face="bold.italic"),
+  axis.text.x=element_blank())
+# ggarrange(b.rep.inf, b.rep, 
+#           labels = c("With Infinite Numbers", "Without Infinite Number"),
+#           ncol = 1, nrow = 2)
+```
+
+### Frequency of Disaster Types
+
+```{r}
+df.group.states <- df.prep.5 %>% group_by(County)  %>%
+                    summarise(NumberDisaster = count(Type),
+                              .groups = 'drop')
+```
+
+```{r}
+df.group.states <- df.prep.5 %>% 
+  group_by(State, Type) %>% 
+  summarize(number_sightings = n())
+
+```
+
+## Model
 
 ```{r}
 
 ```
 
 ## Chapter of choice
+
+For the chapter of choice we have chosen the shiny dashboard
+application. The focus lies on the exploratory analysis and to make it
+interactive for users. \@ MARTINA: in the folder shiny there are the
+first tries
 
 ## Chapter of choice (Martina)
 
