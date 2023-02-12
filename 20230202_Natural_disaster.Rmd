@@ -53,6 +53,8 @@ library(widgetframe)
 library(colormap)
 library(ggiraph)
 library(ggpubr)
+library(MVA)
+library(cluster)
 ```
 
 ## Description of data set(s)
@@ -492,12 +494,12 @@ b.rep+
 #           ncol = 1, nrow = 2)
 ```
 
-### Frequency of Disaster Types
+### Frequency of Disaster Types by Country
 
 ```{r}
-df.group.states <- df.prep.5 %>% group_by(County, State)  %>%
-                    summarise(NumberDisaster = count(Type),
-                              .groups = 'drop')
+# df.group.states <- df.prep.5 %>% group_by(County, State)  %>%
+#                     summarise(NumberDisaster = count(Type),
+#                               .groups = 'drop')
 ```
 
 ```{r}
@@ -532,8 +534,43 @@ plot_usmap(data = df.county.2, values = "number_sightings", color = "red") +
 
 ## Model
 
-```{r}
+The goal of this model fitting chapter is to see if the linear
+regression is appropriate tool to predict/explain the damage amount and
+state.
 
+The sum of the damage across one state shows a light right skewedness.
+Therefore, we performed a log transformation. Now it is more of a normal
+distribution.
+
+```{r}
+df.group.damage <- df.prep.5 %>%
+  group_by(State) %>% 
+  summarise(across(c(Damage, IncomeCapita, Duration, Population), sum, na.rm = TRUE))
+```
+
+```{r}
+ggplot(data = df.group.damage, 
+       mapping = aes(x = Damage, fill = '')) +
+  geom_histogram(show.legend = FALSE)+
+  labs(x = 'Damage', y = 'Count') +
+  scale_fill_manual(values = c('salmon4')) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=18,face="bold"))
+```
+
+```{r}
+ggplot(data = df.group.damage, 
+       mapping = aes(x = log(Damage), fill = '')) +
+  geom_histogram(show.legend = FALSE)+
+  labs(x = 'Damage (log)', y = 'Count') +
+  scale_fill_manual(values = c('mistyrose3'))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=18,face="bold"))
+```
+
+```{r}
+model <- lm(Damage ~ Population + State, data = df.group.damage)
+summary(model)
 ```
 
 ## Chapter of choice
@@ -542,6 +579,109 @@ For the chapter of choice we have chosen the shiny dashboard
 application. The focus lies on the exploratory analysis and to make it
 interactive for users. \@ MARTINA: in the folder shiny there are the
 first tries
+
+For every analysis some kind of outlier detection is a way to see if the
+data has some structure.
+
+```{r}
+#Dataframe
+df.outlier.0 <- data.frame(Approved = df.prep.5$Approved, 
+                              Repair = df.prep.5$Repair,
+                           income = df.prep.5$IncomeCapita,
+                           population = df.prep.5$Population,
+                           damage = df.prep.5$Damage)
+
+df.outlier.1 <- data.frame(repair = df.outlier.0$Repair,
+                           income = df.outlier.0$income)
+plot(df.outlier.1)
+```
+
+### Clustering the two variables income and repair
+
+When we scale the data we get one big cluster. By examining, after the
+initial clustering, we can see that the elbow is at 2 or 5. The further
+analysis with plots of the clusters and silhouette plot gives the
+indication that two clusters are the better solution. This means
+
+```{r}
+#prep the data
+datas <- scale(df.outlier.1, center = FALSE, scale = TRUE)
+datas <- na.omit(datas)
+boxplot(datas)
+```
+
+```{r}
+plot(datas)
+
+dists <- dist(datas)
+```
+
+```{r}
+km <- kmeans(datas, centers = 3, nstart = 10)
+groups_km <- km$cluster
+groups_km
+
+cluster_size <- cbind(sum(groups_km == 1), sum(groups_km == 2), 
+                      sum(groups_km == 3))
+cluster_size
+```
+
+```{r}
+plot(datas, pch = groups_km, col=groups_km, lwd=2)
+legend("topright", legend = 1:3, pch = 1:3, col=1:3, bty="n")
+```
+
+```{r}
+reps <- rep(0, 6)
+for (i in 1:6) reps[i] <- sum(kmeans(datas, centers = i, nstart = 20)$withinss)
+par(mfrow = c(1,1))
+plot(1:6, reps, type = "b", xlab = "Number of groups", ylab = "Sum of squares")
+```
+
+```{r}
+km2 <- kmeans(datas, centers = 2, nstart = 10)
+groups_km2 <- km2$cluster
+groups_km2
+
+cluster_size2 <- cbind(sum(groups_km2 == 1), sum(groups_km2 == 2))
+cluster_size2
+```
+
+```{r}
+plot(datas, pch = groups_km2, col=groups_km2, lwd=2)
+legend("topright", legend = 1:2, pch = 1:2, col=1:2, bty="n")
+```
+
+```{r}
+plot(silhouette(groups_km2, dists))
+```
+
+```{r}
+km5 <- kmeans(datas, centers = 5, nstart = 10)
+groups_km5 <- km5$cluster
+groups_km5
+
+cluster_size5 <- cbind(sum(groups_km5 == 1), sum(groups_km5 == 2), 
+                      sum(groups_km5 == 3), sum(groups_km5 == 4),sum(groups_km5 == 5))
+cluster_size5
+```
+
+```{r}
+plot(datas, pch = groups_km5, col=groups_km5, lwd=2)
+legend("topright", legend = 1:5, pch = 1:5, col=1:5, bty="n")
+```
+
+```{r}
+plot(silhouette(groups_km5, dists))
+```
+
+```{r}
+dc <- dist(datas, method = "euclidean")
+dc
+
+cc <- hclust(dc, method = "complete")
+plot(cc,cex = 0.3, hang = -1)
+```
 
 ## Chapter of choice (Martina)
 
