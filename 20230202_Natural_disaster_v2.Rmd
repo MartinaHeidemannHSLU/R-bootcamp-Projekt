@@ -1,0 +1,688 @@
+---
+title: "Occurence of natural disasters in the US"
+author: "Milica Pajkic, Martina Heidemann"
+date: "2023-02-17"
+output: 
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	fig.align = "center",
+	fig.asp = 0.8,
+	fig.width = 6,
+	message = FALSE,
+	warning = FALSE,
+	out.width = "60%"
+)
+```
+
+## Background
+
+Climate change is one of the biggest challenges facing humanity today
+resulting among other effects in more frequent and severe weather
+events. The Federal Emergency Management Agency (FEMA) is part of
+Homeland Security in the USA and responsible for coordinating the
+response to disasters and emergencies, both natural and man-made. FEMA
+provides support to state and local governments, as well as to
+individuals affected by disasters, by offering financial assistance,
+providing temporary housing, and assisting with recovery efforts. The
+agency also plays a key role in disaster preparedness and risk reduction
+through programs that help communities develop plans and take steps to
+reduce the impact of future disasters.
+
+```{r LIBRARIES, include=FALSE}
+library(readxl)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(rvest)
+library(ggplot2)
+library(plotly)
+library(hrbrthemes)
+library(widgetframe)
+library(colormap)
+library(ggiraph)
+library(ggpubr)
+library(MVA)
+library(cluster)
+```
+
+## Description of data set(s)
+
+FEMA provides various data sets on disasters that occurred in the past,
+some of them going back to the 1960s. For our project we merged two data
+sets from FEMA and enriched them with additional information like
+geographical data (e.g. longitude, latitude) and population size per
+state from Wikipedia. The first data set from FEMA contains for example
+information on the type of disaster (fire, flooding, etc.), the state in
+which the disaster occurred and the dates when it occurred. From the
+second data set, we pulled information on the amount of damage each
+disaster caused, measured in amount of money. Since the second data set
+only goes back to 2002, we decided to do our analysis in the time frame
+of the past 20 years.
+
+```{r LOAD, include=FALSE}
+##Reading data tables from directory
+df1 <- read.csv("DisasterDeclarationsSummaries.csv")
+df2 <- read.csv("HousingAssistanceOwners.csv")
+UScounties <- read_excel("UScounties.xlsx")
+# Reading in the table from Wikipedia
+page = read_html("https://en.wikipedia.org/wiki/List_of_United_States_counties_by_per_capita_income")
+
+# Obtain the piece of the web page that corresponds to the "wikitable" node
+my.table = html_node(page, ".wikitable")
+# Convert the html table element into a data frame
+my.table = html_table(my.table, fill = TRUE)
+
+```
+
+```{r CLEANING_1, include=FALSE}
+# Extracting and tidying the column "PerCapitaIncome"from the table and adding row names
+x = as.numeric(gsub("\\[.*","",my.table[,4]))
+names(x) = gsub("\\[.*","",my.table[,2])
+# Excluding non-states and averages from the table
+per.capita.income = x[!names(x) %in% c("United States", "Northern Mariana Islands", "Guam", "American Samoa", "Puerto Rico", "U.S. Virgin Islands")]
+
+my.table <- my.table %>% 
+  rename(county = `County or county-equivalent`)
+
+#rename
+df1$designatedArea <- sub("\\(.*", "", df1$designatedArea)
+df2$county <- sub("\\(.*", "", df2$county)
+UScounties$county <- sub("\\(.*", "", UScounties$county)
+```
+
+```{r MERGE, include=FALSE}
+merge_i <- inner_join(x = df1, y = df2, 
+                      by = c('designatedArea' = 'county', 'disasterNumber' = 'disasterNumber'))
+
+merge_unique <- merge_i %>% distinct(disasterNumber,.keep_all = TRUE)
+merge_unique
+
+merge_unique %>% 
+  select(designatedArea, zipCode, state.x) %>% 
+  as_tibble()
+
+UScounties %>% 
+  select(county, county_ascii, state_id) %>% 
+  as_tibble()
+
+merge_unique$designatedArea <- str_remove(string = merge_unique$designatedArea, pattern = " +$")
+
+###left join
+merge_county <- left_join(x = merge_unique, y = UScounties, by = c('designatedArea' = 'county', "state.x" = "state_id"))
+###left join
+merge_capita <- left_join(x = merge_county, y = my.table, by = c('designatedArea' = 'county', "state_name" ="State, federal district or territory"))
+```
+
+```{r CLEANING_2, include=FALSE}
+#generate better names
+names(merge_capita) <- names(merge_capita) %>%  make.names()
+
+##my.table transforming the data type
+merge_capita$Population <- sapply(merge_capita$Population, function(x) as.numeric(gsub(",", "", x)))
+merge_capita$Number.ofhouseholds <- sapply(merge_capita$Number.ofhouseholds, function(x) as.numeric(gsub(",", "", x)))
+merge_capita$Rank <- sapply(merge_capita$Rank, function(x) as.numeric(gsub(",", "", x)))
+merge_capita$Per.capitaincome <- sapply(merge_capita$Per.capitaincome, function(x) as.numeric(gsub("[$,]", "", x)))
+merge_capita$Medianhouseholdincome <- sapply(merge_capita$Medianhouseholdincome, function(x) as.numeric(gsub("[$,]", "", x)))
+merge_capita$Medianfamilyincome <- sapply(merge_capita$Medianfamilyincome, function(x) as.numeric(gsub("[$,]", "", x)))
+
+##dropping variables not used for our project
+colnames(merge_capita) # show all variables
+df.prep = subset(merge_capita, select = c(disasterNumber, fyDeclared, incidentType, 
+                                          declarationTitle, incidentBeginDate, incidentEndDate,
+                                          designatedArea, totalDamage,
+                                          totalApprovedIhpAmount, repairReplaceAmount,
+                                          state_name, lat, lng, population, Per.capitaincome))
+colnames(df.prep)
+##transform variable to right data type
+df.prep$incidentBeginDate <- str_remove(string = df.prep$incidentBeginDate, pattern = "T00:00:00.000Z")
+df.prep$incidentEndDate <- str_remove(string = df.prep$incidentEndDate, pattern = "T00:00:00.000Z")
+df.prep.1 <- df.prep
+df.prep.1$incidentBeginDate <- as.Date(df.prep.1$incidentBeginDate)
+df.prep.1$incidentEndDate <- as.Date(df.prep.1$incidentEndDate)
+
+df.prep.1$duration <- difftime(df.prep.1$incidentEndDate, df.prep.1$incidentBeginDate, units="days")
+str(df.prep.1)
+
+##drop columns without lang/lat because it is not a US-State (see PR)
+df.prep.2 <- df.prep.1 %>% drop_na(lat)
+
+##change 'incident Type' from character to factor
+df.prep.3 <- df.prep.2
+class(df.prep.3$incidentType) 
+df.prep.3$incidentType <- as.factor(df.prep.3$incidentType) 
+
+class(df.prep.3$state_name) 
+df.prep.3$state_name <- as.factor(df.prep.3$state_name) 
+colnames(df.prep.3)
+#df.prep.3$declaration.title.fac <- as.factor(df.prep.3$declarationTitle) 
+
+#reorder and rename columns to make the dataset more readable and more logically organized
+df.prep.4 <- df.prep.3[,c("disasterNumber","incidentType","designatedArea", "state_name",
+                             "lat", "lng", "totalDamage", "totalApprovedIhpAmount",
+                             "repairReplaceAmount", "population", "Per.capitaincome",
+                             "incidentBeginDate", "incidentEndDate", "duration")]
+
+df.prep.5 <- df.prep.4
+colnames(df.prep.5) <- c("Disaster#", "Type", "County", "State", "Latitude",
+                                "Longitude", "Damage", "Approved",
+                                "Repair", "Population", "IncomeCapita", "DisasterBegin",
+                                "DisasterEnd", "Duration")
+```
+
+After merging and cleaning the data from the four sources, our final
+data set to do the analysis on looked like this:
+
+```{r echo=FALSE}
+knitr::kable(head(df.prep.5))
+```
+
+## Exploratory Data Analysis
+
+### Relative frequency of disaster types
+
+Displaying the cumulative frequencies of each disaster type relative to
+each other, we can learn from the stacked bar chart that "severe storms"
+are by far the commonest disaster type, followed by hurricanes and
+biological disasters.
+
+```{r EDA - DisasterType_1, echo=FALSE}
+
+#Bar chart for the type of disaster in percentages
+type <- as.factor(df.prep.5$Type)
+
+disastertype_bar <- ggplot(df.prep.5, aes(x= "", fill = type)) +
+  geom_bar(position="fill")  + labs(x = " ", y = "Frequency of disaster type")
+disastertype_bar + scale_fill_brewer(name = "Disaster Type", palette ="Spectral") 
+
+#ggplotly(disastertype_bar)
+```
+
+### Distribution of disaster types over time
+
+Various insights can be gained from the time plot below. For example, it
+looks like for example severe storms happen quite frequently in general
+except for the years of approximately 2013-2015 and 2017/2018-ish.
+Furthermore, only one volcanic eruption and one severe ice storm was
+recorded in the displayed time period. Dam or Levee breaks and
+biological disasters did not occur between 2000 and 2023. We could
+hypothesize that fires seemed to last longer in years previous to about
+2013 compared to afterwards - maybe due to more efficient ways that were
+developed to extinguish them. However, in this plot, the duration of
+almost 500 disasters are shown which might overlap. Since using 500
+different colors for each individual disaster might not help much, we
+would switch to a different way of showing this information, for example
+an interactive graphic with Shiny.
+
+```{r EDA DisasterType_2, echo=FALSE}
+
+ts.dataframe <- data.frame(DisasterN = df.prep.5$`Disaster#`,
+                           Type = df.prep.5$Type,
+                           Begin = df.prep.5$DisasterBegin,
+                           End = df.prep.5$DisasterEnd)
+
+ggplot(ts.dataframe, aes(x = Begin, xend = End, y = Type, yend = Type)) +
+  geom_segment(size = 5, color = "cyan3") +
+  labs(x = 'Time', y = 'Disaster Type')
+
+```
+
+### Duration per disaster type
+
+Exploring the disaster types a little bit further, we can detect in the
+boxplot below that fires show the largest variation in terms of
+duration. It is also the one with the highest median (speaking of
+duration). Next to the natural catastroph fire, earthquakes have the
+second highest Dam or Levee breaks, volcanic eruptions, tornados and
+severe ice storms are amongst the disasters with the shortest durations.
+
+```{r EDA Duration, echo=FALSE}
+
+ggplot(df.prep.5, mapping = aes(x = Type, y = Duration)) +
+  geom_boxplot(color = "hotpink4", fill = "hotpink3", alpha = 0.5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "", y = "Duration")
+
+```
+
+### Damage per state
+
+To analyse the data on damage, we first took a look at the distribution
+of the data points. The histogram indicated a right skewed distribution.
+
+```{r EDA Damage, echo=FALSE}
+
+ggplot(data = df.prep.5, 
+       mapping = aes(x = Damage, fill = '')) +
+  geom_histogram(show.legend = FALSE) +
+  scale_x_continuous(limits = c(0, 12000)) +
+  scale_y_continuous(limits = c(0, 20)) +
+  scale_fill_manual(values = c('cyan4')) +
+  theme_minimal()
+
+```
+
+Also, the difference between the individual damage amounts are quite
+large which makes it hard to work with. Therefore, we took the logarithm
+of the data, which resulted in displaying a normal distribution:
+
+```{r echo=FALSE}
+ggplot(data = df.prep.5, 
+       mapping = aes(x = log(Damage), fill = '')) +
+  geom_histogram(show.legend = FALSE) +
+  labs(x = 'Damage (log)', y = 'Count') +
+  scale_fill_manual(values = c('deepskyblue4')) +
+  theme_minimal()
+```
+
+With the transformed data, we could generate a plot showing the damage
+disasters have cause per state in the US over the past 20 years:
+
+```{r echo=FALSE}
+knitr::knit_print
+
+us_map <- map_data("state")
+state_dam <- df.prep.5 %>% group_by(State) %>% 
+  summarize(damage = sum(Damage))
+state_dam <- data.frame(state_dam)
+state_dam$State <- tolower(state_dam$State)
+
+map_dam <- left_join(x = us_map, y = state_dam, by = c('region' = 'State'))
+
+map_dam$damage2 <- log(map_dam$damage)
+map_dam <- map_dam[is.finite(map_dam$damage2),]
+write.csv(map_dam, "map_dam.csv")
+
+
+ggplot() +
+  geom_polygon(map_dam, mapping = aes(x = long, y = lat, group = group, fill = damage2)) +
+  labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
+  coord_quickmap() +
+  scale_fill_gradient(limits = c(min(map_dam$damage2), max(map_dam$damage2)),
+                      breaks = c(min(map_dam$damage2), max(map_dam$damage2)),
+                      labels = c("Low", "High"), na.value = "grey50")
+
+```
+
+```{r}
+g <- ggplot(map_dam) +
+  geom_polygon_interactive(
+    color='black',
+    aes(x = long, y = lat, group = group, fill = damage2,
+                                      tooltip=sprintf("%s<br/>%s",region,damage))) +
+  labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
+  coord_quickmap() +
+  # scale_fill_gradient(limits = c(min(map_dam$damage2), max(map_dam$damage2)),
+  #                   breaks = c(min(map_dam$damage2), max(map_dam$damage2)),
+  #                  labels = c("Low", "High"), na.value = "grey50") +
+  hrbrthemes::theme_ipsum() +
+  colormap::scale_fill_colormap(
+    colormap=colormap::colormaps$copper, reverse = T) +
+  labs(title='Internet Usage in Africa in 2015', subtitle='As Percent of Population',
+       caption='Source: World Bank Open Data.')
+
+widgetframe::frameWidget(ggiraph(code=print(g)))
+```
+
+### Population per state
+
+The following map shows the population per state. Similar to above, we
+are using the log-transformed data.
+
+```{r echo=FALSE}
+us_map <- map_data("state")
+state_pop <- df.prep.5 %>% group_by(State) %>% 
+  summarize(population = sum(Population))
+state_pop <- data.frame(state_pop)
+state_pop$State <- tolower(state_pop$State)
+
+map_pop <- left_join(x = us_map, y = state_pop, by = c('region' = 'State'))
+map_pop$population2 <- log(map_pop$population)
+
+ggplot() +
+  geom_polygon(map_pop, mapping = aes(x = long, y = lat, group = group, fill = population2)) +
+  labs(x = 'Longitude', y = 'Latitude', fill = 'Population') +
+  coord_quickmap()
+
+```
+
+### Damage vs. approved
+
+Hier will ich zwei Volcanic ausschliessen
+
+Damage muss ich logarithmieren
+
+Even with the changes in bin we can see a stark right skewedness. The
+first step to change right skewedness is to log-transform it.
+
+With this caculation: damage - approved it is visible where the cost of
+damage has been adequately given and where the monetary help has come
+short. If the difference is negative, then more money has been approved
+than there is damage. If it is positive, then the allocation of approved
+money is smaller than the damage and therefore, not enough money has
+been given for help.
+
+In the histogram it is clearly seen, that
+
+```{r}
+diff_approved <- data.frame(DisasterN = df.prep.5$`Disaster#`,
+                           Type = df.prep.5$Type,
+                           Duration = df.prep.5$Duration,
+                           Damage = df.prep.5$Damage,
+                           Approved = df.prep.5$Approved)
+diff_approved$difference <- diff_approved$Damage - diff_approved$Approved
+
+summary(diff_approved$difference)
+
+```
+
+```{r}
+hist.df <- data.frame(Damage = df.prep.5$Damage,
+                      Approved = df.prep.5$Approved)
+summary(hist.df)
+```
+
+```{r}
+ hist.df %>% 
+      pivot_longer(everything()) %>%
+      ggplot(aes(x = value, fill = name)) +
+      geom_histogram(position = "identity", alpha = 0.5) +
+     scale_x_continuous(limits = c(0, 300000)) +
+     scale_y_continuous(limits = c(0, 70))
+```
+
+```{r}
+hist.app.log.df <- data.frame(Damage = log(df.prep.5$Damage),
+                      Approved = log(df.prep.5$Approved))
+hist.app.log.df %>% 
+      pivot_longer(everything()) %>%
+      ggplot(aes(x = value, fill = name)) +
+      geom_histogram(position = "identity", alpha = 0.5)
+```
+
+```{r}
+boxplot.approved.df <- data.frame(Damage = log(df.prep.5$Damage),
+                      Approved = log(df.prep.5$Approved),
+                      Type = df.prep.5$Type)
+
+boxplot.approved.num <- boxplot.approved.df %>% 
+  filter_if(~is.numeric(.), all_vars(!is.infinite(.)))
+
+b.app.inf <- boxplot.approved.df %>%
+  pivot_longer(Damage:Approved, names_to = "Names", values_to = "values") %>%
+  ggplot(aes(y = values, x = Type, fill = Names))+
+  geom_boxplot()
+
+b.app <- boxplot.approved.num %>%
+  pivot_longer(Damage:Approved, names_to = "Names", values_to = "values") %>%
+  ggplot(aes(y = values, x = Type, fill = Names))+
+  geom_boxplot()
+
+ggarrange(b.app.inf, b.app, 
+          labels = c("With Infinite Numbers", "Without Infinite Number"),
+          ncol = 1, nrow = 2)
+```
+
+### Approved and actually used (repair)
+
+```{r}
+repair.short.df <- data.frame(Approved = df.prep.5$Approved, 
+                              Repair = df.prep.5$Repair)
+summary(repair.short.df)
+```
+
+```{r}
+ repair.short.df %>% 
+      pivot_longer(everything()) %>%
+      ggplot(aes(x = value, fill = name)) +
+      geom_histogram(position = "identity", alpha = 0.5) +
+     scale_x_continuous(limits = c(0, 300000)) +
+     scale_y_continuous(limits = c(0, 70))
+```
+
+```{r}
+repair.log.df <- data.frame(Approved = log(df.prep.5$Approved),
+                            Repair = log(df.prep.5$Repair))
+repair.log.df %>% 
+      pivot_longer(everything()) %>%
+      ggplot(aes(x = value, fill = name)) +
+      geom_histogram(position = "identity", alpha = 0.5)
+```
+
+```{r}
+boxplot.repair.df <- data.frame(ApprovedLog = log(df.prep.5$Approved),
+                               RepairLog = log(df.prep.5$Repair),
+                      Type = df.prep.5$Type)
+
+boxplot.repair.num.df <- boxplot.repair.df %>% 
+  filter_if(~is.numeric(.), all_vars(!is.infinite(.)))
+
+b.rep.inf <- boxplot.repair.num.df %>%
+  pivot_longer(ApprovedLog:RepairLog, names_to = "Names", values_to = "values") %>%
+  ggplot(aes(y = values, x = Type, fill = Names))+
+  geom_boxplot() + 
+  facet_wrap(~Type, scale="free")+
+  ggtitle('Approved and Repair Amount logarthmized without Inf Rows')
+b.rep.inf + theme(
+  plot.title = element_text(size=18, face="bold.italic"),
+  axis.text.x=element_blank())
+
+
+b.rep <- boxplot.repair.df %>%
+  pivot_longer(ApprovedLog:RepairLog, names_to = "Names", values_to = "values") %>%
+  ggplot(aes(y = values, x = Type, fill = Names))+
+  geom_boxplot() +
+  facet_wrap(~Type, scale="free")+
+  ggtitle('Approved and Repair Amount logarthmized with Inf Rows')
+b.rep+
+  theme(
+  plot.title = element_text(color = 'red',size=18, face="bold.italic"),
+  axis.text.x=element_blank())
+# ggarrange(b.rep.inf, b.rep, 
+#           labels = c("With Infinite Numbers", "Without Infinite Number"),
+#           ncol = 1, nrow = 2)
+```
+
+### Frequency of Disaster Types by Country
+
+```{r}
+# df.group.states <- df.prep.5 %>% group_by(County, State)  %>%
+#                     summarise(NumberDisaster = count(Type),
+#                               .groups = 'drop')
+```
+
+```{r}
+DF2 <- df.prep.5 %>%
+   select(County, Longitude, Latitude, State)
+
+df.group.county <- df.prep.5 %>% 
+  group_by(County, State, Type) %>% 
+  summarize(number_sightings = n())
+
+df.county.2 <- left_join(df.group.county, DF2, by = c("County", "State"))
+
+df.county.2 <- df.county.2[!duplicated(df.county.2), ]
+
+#write.csv(df.group.county, "df.group.states.csv")
+
+library(usmap)
+library(ggplot2)
+
+plot_usmap(regions = "counties") + 
+  labs(title = "US Counties",
+       subtitle = "This is a blank map of the counties of the United States.") + 
+  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+```
+
+```{r}
+plot_usmap(data = df.county.2, values = "number_sightings", color = "red") + 
+  scale_fill_continuous(
+    low = "white", high = "red", name = "Number of Sightings", label = scales::comma
+  ) + theme(legend.position = "right")
+```
+
+## Model
+
+The goal of this model fitting chapter is to see if the linear
+regression is appropriate tool to predict/explain the damage amount and
+state.
+
+The sum of the damage across one state shows a light right skewedness.
+Therefore, we performed a log transformation. Now it is more of a normal
+distribution.
+
+```{r}
+df.group.damage <- df.prep.5 %>%
+  group_by(State) %>% 
+  summarise(across(c(Damage, IncomeCapita, Duration, Population), sum, na.rm = TRUE))
+```
+
+```{r}
+ggplot(data = df.group.damage, 
+       mapping = aes(x = Damage, fill = '')) +
+  geom_histogram(show.legend = FALSE)+
+  labs(x = 'Damage', y = 'Count') +
+  scale_fill_manual(values = c('salmon4')) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=18,face="bold"))
+```
+
+```{r}
+ggplot(data = df.group.damage, 
+       mapping = aes(x = log(Damage), fill = '')) +
+  geom_histogram(show.legend = FALSE)+
+  labs(x = 'Damage (log)', y = 'Count') +
+  scale_fill_manual(values = c('mistyrose3'))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=18,face="bold"))
+```
+
+```{r}
+model <- lm(Damage ~ Population + State, data = df.group.damage)
+summary(model)
+```
+
+## Chapter of choice
+
+For the chapter of choice we have chosen the shiny dashboard
+application. The focus lies on the exploratory analysis and to make it
+interactive for users. \@ MARTINA: in the folder shiny there are the
+first tries
+
+For every analysis some kind of outlier detection is a way to see if the
+data has some structure.
+
+```{r}
+#Dataframe
+df.outlier.0 <- data.frame(Approved = df.prep.5$Approved, 
+                              Repair = df.prep.5$Repair,
+                           income = df.prep.5$IncomeCapita,
+                           population = df.prep.5$Population,
+                           damage = df.prep.5$Damage)
+
+df.outlier.1 <- data.frame(repair = df.outlier.0$Repair,
+                           income = df.outlier.0$income)
+plot(df.outlier.1)
+```
+
+### Clustering the two variables income and repair
+
+When we scale the data we get one big cluster. By examining, after the
+initial clustering, we can see that the elbow is at 2 or 5. The further
+analysis with plots of the clusters and silhouette plot gives the
+indication that two clusters are the better solution. This means
+
+```{r}
+#prep the data
+datas <- scale(df.outlier.1, center = FALSE, scale = TRUE)
+datas <- na.omit(datas)
+boxplot(datas)
+```
+
+```{r}
+plot(datas)
+
+dists <- dist(datas)
+```
+
+```{r}
+km <- kmeans(datas, centers = 3, nstart = 10)
+groups_km <- km$cluster
+groups_km
+
+cluster_size <- cbind(sum(groups_km == 1), sum(groups_km == 2), 
+                      sum(groups_km == 3))
+cluster_size
+```
+
+```{r}
+plot(datas, pch = groups_km, col=groups_km, lwd=2)
+legend("topright", legend = 1:3, pch = 1:3, col=1:3, bty="n")
+```
+
+```{r}
+reps <- rep(0, 6)
+for (i in 1:6) reps[i] <- sum(kmeans(datas, centers = i, nstart = 20)$withinss)
+par(mfrow = c(1,1))
+plot(1:6, reps, type = "b", xlab = "Number of groups", ylab = "Sum of squares")
+```
+
+```{r}
+km2 <- kmeans(datas, centers = 2, nstart = 10)
+groups_km2 <- km2$cluster
+groups_km2
+
+cluster_size2 <- cbind(sum(groups_km2 == 1), sum(groups_km2 == 2))
+cluster_size2
+```
+
+```{r}
+plot(datas, pch = groups_km2, col=groups_km2, lwd=2)
+legend("topright", legend = 1:2, pch = 1:2, col=1:2, bty="n")
+```
+
+```{r}
+plot(silhouette(groups_km2, dists))
+```
+
+```{r}
+km5 <- kmeans(datas, centers = 5, nstart = 10)
+groups_km5 <- km5$cluster
+groups_km5
+
+cluster_size5 <- cbind(sum(groups_km5 == 1), sum(groups_km5 == 2), 
+                      sum(groups_km5 == 3), sum(groups_km5 == 4),sum(groups_km5 == 5))
+cluster_size5
+```
+
+```{r}
+plot(datas, pch = groups_km5, col=groups_km5, lwd=2)
+legend("topright", legend = 1:5, pch = 1:5, col=1:5, bty="n")
+```
+
+```{r}
+plot(silhouette(groups_km5, dists))
+```
+
+```{r}
+dc <- dist(datas, method = "euclidean")
+dc
+
+cc <- hclust(dc, method = "complete")
+plot(cc,cex = 0.3, hang = -1)
+```
+
+## Chapter of choice (Martina)
+
+## Conclusions
