@@ -394,7 +394,9 @@ summary(diff_approved$difference)
 ```
 
 ```{r}
- hist.df %>% 
+hist.df <- data.frame(Damage = df.prep.5$Damage,
+                           Approved = df.prep.5$Approved) 
+hist.df %>% 
       pivot_longer(everything()) %>%
       ggplot(aes(x = value, fill = name)) +
       geom_histogram(position = "identity", alpha = 0.5) +
@@ -542,18 +544,18 @@ plot_usmap(data = df.county.2, values = "number_sightings", color = "red") +
   ) + theme(legend.position = "right")
 ```
 
-```{r}
-plot_usmap(data = df.county.2, values = "number_sightings", color = "red") + 
-  scale_fill_continuous(
-    low = "blue", high = "red", name = "Number of Sightings", label = scales::comma
-  ) + theme(legend.position = "right") +
-  facet_wrap(~ Type, ncol = 2)
-
-plot_usmap(data = df.county.2, values = "number_sightings", color = "red", include = c("all")) + 
-  scale_fill_continuous(
-    low = "blue", high = "red", name = "Number of Sightings", label = scales::comma
-  ) + theme(legend.position = "right") +
-  facet_wrap(~ Type, ncol = 2)
+```{r MUSS NOCH ANGESCHAUT WERDEN}
+# plot_usmap(data = df.county.2, values = "number_sightings", color = "red") + 
+#   scale_fill_continuous(
+#     low = "blue", high = "red", name = "Number of Sightings", label = scales::comma
+#   ) + theme(legend.position = "right") +
+#   facet_wrap(~ Type, ncol = 2)
+# 
+# plot_usmap(data = df.county.2, values = "number_sightings", color = "red", include = c("all")) + 
+#   scale_fill_continuous(
+#     low = "blue", high = "red", name = "Number of Sightings", label = scales::comma
+#   ) + theme(legend.position = "right") +
+#   facet_wrap(~ Type, ncol = 2)
 ```
 
 ## Model
@@ -697,11 +699,11 @@ str(fitted.model)
 plot(log.damage ~ log.income, data = df.model,
      main = "Model 'model'",
      col = "pink4")
-points(fitted.model ~ log.income,
-       col = "lightblue4",
-       pch = 19,
-       data = df.model)
-abline(model, col = "red4")
+# points(fitted.model ~ log.income,
+#        col = "lightblue4",
+#        pch = 19,
+#        data = df.model)
+# abline(model, col = "red4")
 ```
 
 ```{r}
