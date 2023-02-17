@@ -806,8 +806,9 @@ plot(datas, pch = groups_km2, col=groups_km2, lwd=2)
 legend("topright", legend = 1:2, pch = 1:2, col=1:2, bty="n")
 ```
 
-```{r, fig.align = "left", fig.asp = 1.2, fig.width = 5}
-plot(silhouette(groups_km, dists), color='red3')
+```{r, fig.align = "left", fig.asp =  2.5, fig.width = 7}
+plot(silhouette(groups_km, dists), color='red3', main = "")
+
 ```
 
 ```{r}
@@ -829,7 +830,7 @@ legend("topright", legend = 1:5, pch = 1:5, col=1:5, bty="n")
 plot(silhouette(groups_km5, dists))
 ```
 
-```{r}
+```{r, fig.align = "left", fig.asp =  1.2, fig.width = 7}
 dc <- dist(datas, method = "euclidean")
 dc
 
