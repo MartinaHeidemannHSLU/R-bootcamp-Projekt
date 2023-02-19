@@ -8,6 +8,7 @@ output:
     toc: yes
     toc_float: yes
     toc_depth: 3
+    df_print: paged
 editor_options:
   markdown:
     wrap: 72
@@ -321,24 +322,27 @@ ggplot() +
 
 ```
 
-```{r}
-g <- ggplot(map_dam) +
-  geom_polygon_interactive(
-    color='black',
-    aes(x = long, y = lat, group = group, fill = damage2,
-                                      tooltip=sprintf("%s<br/>%s",region,damage))) +
-  labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
-  coord_quickmap() +
-  # scale_fill_gradient(limits = c(min(map_dam$damage2), max(map_dam$damage2)),
-  #                   breaks = c(min(map_dam$damage2), max(map_dam$damage2)),
-  #                  labels = c("Low", "High"), na.value = "grey50") +
-  hrbrthemes::theme_ipsum() +
-  colormap::scale_fill_colormap(
-    colormap=colormap::colormaps$hot, reverse = T) +
-  labs(title='Log. Damage in the USA',
-       caption='Source: FEMA.')
+```{r map Damage, echo=FALSE}
+invisible({
+  g <- ggplot(map_dam) +
+    geom_polygon_interactive(
+      color='black',
+      aes(x = long, y = lat, group = group, fill = damage2,
+        tooltip=sprintf("%s<br/>%s",region,damage))) +
+    labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
+    coord_quickmap() +
+    # scale_fill_gradient(limits = c(min(map_dam$damage2), max(map_dam$damage2)),
+    #                   breaks = c(min(map_dam$damage2), max(map_dam$damage2)),
+    #                  labels = c("Low", "High"), na.value = "grey50") +
+    hrbrthemes::theme_ipsum() +
+    colormap::scale_fill_colormap(
+      colormap=colormap::colormaps$hot, reverse = T) +
+    labs(title='Log. Damage in the USA',
+      caption='Source: FEMA.')
 
-widgetframe::frameWidget(ggiraph(code=print(g)))
+  htmlwidgets::saveWidget(ggiraph(code=print(g)), "my_plot.html")
+})
+
 ```
 
 ### Population per state
@@ -365,35 +369,15 @@ ggplot() +
 
 ### Damage vs. approved
 
-Hier will ich zwei Volcanic ausschliessen
+How different are the estimated damage and the approved amount? Both
+variables are right skewed which leads to a logarithmization. To see if
+there is difference in the amount of money estimated and approved
+according to the different disaster type, a boxplot has been
+implemented. Big difference in the amount can be seen in tornados. More
+money will/has been allocated to help than the estimation. One reason is
+that only after a tornado can the final damage be assessed.
 
-Damage muss ich logarithmieren
-
-Even with the changes in bin we can see a stark right skewedness. The
-first step to change right skewedness is to log-transform it.
-
-With this caculation: damage - approved it is visible where the cost of
-damage has been adequately given and where the monetary help has come
-short. If the difference is negative, then more money has been approved
-than there is damage. If it is positive, then the allocation of approved
-money is smaller than the damage and therefore, not enough money has
-been given for help.
-
-In the histogram it is clearly seen, that
-
-```{r}
-diff_approved <- data.frame(DisasterN = df.prep.5$`Disaster#`,
-                           Type = df.prep.5$Type,
-                           Duration = df.prep.5$Duration,
-                           Damage = df.prep.5$Damage,
-                           Approved = df.prep.5$Approved)
-diff_approved$difference <- diff_approved$Damage - diff_approved$Approved
-
-summary(diff_approved$difference)
-
-```
-
-```{r}
+```{r EDA Damage vs. approved data, include=FALSE}
 hist.df <- data.frame(Damage = df.prep.5$Damage,
                            Approved = df.prep.5$Approved) 
 hist.df %>% 
@@ -404,7 +388,7 @@ hist.df %>%
      scale_y_continuous(limits = c(0, 70))
 ```
 
-```{r}
+```{r histo damage vs. approved, echo=FALSE}
 hist.app.log.df <- data.frame(Damage = log(df.prep.5$Damage),
                       Approved = log(df.prep.5$Approved))
 hist.app.log.df %>% 
@@ -413,7 +397,7 @@ hist.app.log.df %>%
       geom_histogram(position = "identity", alpha = 0.5)
 ```
 
-```{r}
+```{r boxplot damage vs. approved, echo=FALSE}
 boxplot.approved.df <- data.frame(Damage = log(df.prep.5$Damage),
                       Approved = log(df.prep.5$Approved),
                       Type = df.prep.5$Type)
@@ -449,13 +433,15 @@ ggarrange(b.app.inf, b.app,
 
 ### Approved and actually used (repair)
 
-```{r}
+How
+
+```{r data for approved + used, include=FALSE}
 repair.short.df <- data.frame(Approved = df.prep.5$Approved, 
                               Repair = df.prep.5$Repair)
 summary(repair.short.df)
 ```
 
-```{r}
+```{r histogram approved + used, echo=FALSE}
  repair.short.df %>% 
       pivot_longer(everything()) %>%
       ggplot(aes(x = value, fill = name)) +
@@ -464,7 +450,7 @@ summary(repair.short.df)
      scale_y_continuous(limits = c(0, 70))
 ```
 
-```{r}
+```{r log histo, approved + used, echo=FALSE}
 repair.log.df <- data.frame(Approved = log(df.prep.5$Approved),
                             Repair = log(df.prep.5$Repair))
 repair.log.df %>% 
@@ -507,13 +493,9 @@ b.rep+
 #           ncol = 1, nrow = 2)
 ```
 
-```{r}
-
-```
-
 ### Frequency of Disaster Types by Country
 
-```{r}
+```{r, include=FALSE}
 DF2 <- df.prep.5 %>%
    select(County, Longitude, Latitude, State)
 
@@ -537,14 +519,14 @@ plot_usmap(regions = "counties") +
   theme(panel.background = element_rect(color = "black", fill = "lightblue"))
 ```
 
-```{r}
+```{r, include=FALSE}
 plot_usmap(data = df.county.2, values = "number_sightings", color = "red") + 
   scale_fill_continuous(
     low = "white", high = "red", name = "Number of Sightings", label = scales::comma
   ) + theme(legend.position = "right")
 ```
 
-```{r MUSS NOCH ANGESCHAUT WERDEN}
+```{r MUSS NOCH ANGESCHAUT WERDEN, include=FALSE}
 # plot_usmap(data = df.county.2, values = "number_sightings", color = "red") + 
 #   scale_fill_continuous(
 #     low = "blue", high = "red", name = "Number of Sightings", label = scales::comma
@@ -568,13 +550,13 @@ The sum of the damage across one state shows a light right skewedness.
 Therefore, we performed a log transformation. Now it is more of a normal
 distribution.
 
-```{r}
+```{r, include=FALSE}
 df.group.damage <- df.prep.5 %>%
   group_by(State) %>% 
   summarise(across(c(Damage, IncomeCapita, Duration, Population), sum, na.rm = TRUE))
 ```
 
-```{r}
+```{r, include=FALSE}
 ggplot(data = df.group.damage, 
        mapping = aes(x = Damage, fill = '')) +
   geom_histogram(show.legend = FALSE)+
@@ -584,7 +566,7 @@ ggplot(data = df.group.damage,
         axis.title=element_text(size=18,face="bold"))
 ```
 
-```{r}
+```{r, include=FALSE}
 ggplot(data = df.group.damage, 
        mapping = aes(x = log(Damage), fill = '')) +
   geom_histogram(show.legend = FALSE)+
@@ -594,7 +576,7 @@ ggplot(data = df.group.damage,
         axis.title=element_text(size=18,face="bold"))
 ```
 
-```{r}
+```{r, include=FALSE}
 model <- lm(Damage ~ Population + State, data = df.group.damage)
 summary(model)
 ```
@@ -624,7 +606,7 @@ To see if the chosen variables have an influence on damage a testing was
 done (*drop1*). The model.full indicates that only log.income, Type and
 Duration have relevant effects on the dependent variable damage.
 
-```{r}
+```{r, echo=FALSE}
 ggplot(data = df.prep.5, 
        mapping = aes(x = log(Damage), fill = '')) +
   geom_histogram(show.legend = FALSE)+
@@ -663,7 +645,7 @@ ggplot(df.prep.5, aes(log(IncomeCapita),log(Damage))) +
   geom_smooth(method = "lm", se = FALSE)
 ```
 
-### Linear Regression
+### Linear Regression {.tabset}
 
 ```{r}
 df.model <- df.prep.5
@@ -677,7 +659,15 @@ summary(model)
 
 ```
 
-```{r}
+#### Model with all the variables
+
+In this model we are fitting all the variables and are afterwards
+implementing drop1 to see, which variable has a significant influence on
+the dependent variable. After this, we are dropping the variables with
+no significant influence on the variable damage. The final model
+includes income, type of disaster and the duration.
+
+```{r, collapse = TRUE}
 model.full <- lm(log.damage ~ log.income + State+ Type+ Population+ Duration, data = na.omit(df.model))
 summary(model.full)
 ```
@@ -808,7 +798,7 @@ plot(datas, pch = groups_km2, col=groups_km2, lwd=2)
 legend("topright", legend = 1:2, pch = 1:2, col=1:2, bty="n")
 ```
 
-```{r, fig.align = "left", fig.asp =  2.5, fig.width = 7}
+```{r, fig.align = "left", fig.asp =  2.5, fig.width = 7, include=FALSE}
 plot(silhouette(groups_km, dists), color='red3', main = "")
 
 ```
@@ -832,7 +822,7 @@ legend("topright", legend = 1:5, pch = 1:5, col=1:5, bty="n")
 plot(silhouette(groups_km5, dists))
 ```
 
-```{r, fig.align = "left", fig.asp =  1.2, fig.width = 7}
+```{r, fig.align = "left", fig.asp =  1.2, fig.width = 7, include=FALSE}
 dc <- dist(datas, method = "euclidean")
 dc
 
