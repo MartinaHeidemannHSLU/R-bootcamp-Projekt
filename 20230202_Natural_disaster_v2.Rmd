@@ -218,18 +218,18 @@ disastertype_bar + scale_fill_brewer(name = "Disaster Type", palette ="Spectral"
 ### Distribution of disaster types over time
 
 Various insights can be gained from the time plot below. For example, it
-looks like severe storms happen quite frequently in general
-except for the years of approximately 2013-2015 and 2017/2018-ish.
-Furthermore, only one volcanic eruption and one severe ice storm was
-recorded in the displayed time period. Dam or Levee breaks and
-biological disasters did not occur between 2000 and 2023. We could
-hypothesize that fires seemed to last longer in years previous to about
-2013 compared to afterwards - maybe due to more efficient ways that were
-developed to extinguish them. However, in this plot, the duration of
-almost 500 disasters are shown which might overlap. Since using 500
-different colors for each individual disaster might not help much, we
-would switch to a different way of showing this information, for example
-an interactive graphic with Shiny.
+looks like severe storms happen quite frequently in general except for
+the years of approximately 2013-2015 and 2017/2018-ish. Furthermore,
+only one volcanic eruption and one severe ice storm was recorded in the
+displayed time period. Dam or Levee breaks and biological disasters did
+not occur between 2000 and 2023. We could hypothesize that fires seemed
+to last longer in years previous to about 2013 compared to afterwards -
+maybe due to more efficient ways that were developed to extinguish them.
+However, in this plot, the duration of almost 500 disasters are shown
+which might overlap. Since using 500 different colors for each
+individual disaster might not help much, we would switch to a different
+way of showing this information, for example an interactive graphic with
+Shiny.
 
 ```{r EDA DisasterType_2, echo=FALSE}
 
@@ -248,7 +248,14 @@ ggplot(ts.dataframe, aes(x = Begin, xend = End, y = Type, yend = Type)) +
 
 Exploring the disaster types a little bit further, we can detect in the
 boxplot below that fires show the largest variation in terms of
-duration. The disaster with the biggest median duration is volcanic eruptions. However, this observation should be analyzed further since it looks like there was only one incidence in the analysed time frame (only the median is shown, no variation visible which means that there is only one data point in this group). Ouliers with very long durations can be detected in the groups of floods, hurricanes, severe storms, and tornados. 
+duration. The disaster with the biggest median duration is volcanic
+eruptions. However, this observation should be analyzed further since it
+looks like there was only one incidence in the analysed time frame (only
+the median is shown, no variation visible which means that there is only
+one data point in this group). Ouliers with very long durations can be
+detected in the groups of floods, hurricanes, severe storms, and
+tornados.
+
 ```{r EDA Duration, echo=FALSE}
 
 ggplot(df.prep.5, mapping = aes(x = Type, y = Duration)) +
@@ -368,7 +375,12 @@ ggplot() +
 
 ### Actual Damage vs. approved amount
 
-How much does the estimated damage and the approved amount differ? As before, we worked with log-transformed data.By displaying overlapping histograms, we can conclude that there are a few instances where the approved amount is a lot lower compared to the damage that actually happened. Vice versa, there are instances where the approved amount exeeded the actual damage. 
+How much does the estimated damage and the approved amount differ? As
+before, we worked with log-transformed data.By displaying overlapping
+histograms, we can conclude that there are a few instances where the
+approved amount is a lot lower compared to the damage that actually
+happened. Vice versa, there are instances where the approved amount
+exeeded the actual damage.
 
 ```{r EDA Damage vs. approved data, include=FALSE}
 hist.df <- data.frame(Damage = df.prep.5$Damage,
@@ -426,7 +438,9 @@ label_bottom <- "<span style='font-size: {size}px;'>Without Infinite Numbers</sp
 
 ### Approved and actually used (repair)
 
-When comparing the amount of money that was approved to repair the damage with the actual costs spent on reconstructions, we can see that in almost all cases, less money was spent than approved. 
+When comparing the amount of money that was approved to repair the
+damage with the actual costs spent on reconstructions, we can see that
+in almost all cases, less money was spent than approved.
 
 ```{r data for approved + used, include=FALSE}
 repair.short.df <- data.frame(Approved = df.prep.5$Approved, 
@@ -452,7 +466,10 @@ repair.log.df %>%
       geom_histogram(position = "identity", alpha = 0.5)
 ```
 
-Diving into this in a bit more detail, we can distinguish between disaster types. For some, like tornados or severe ice storms, the approved amounts exceed the spent amounts far more compared to others like earthquakes or floods where the two amounts are much more equal. 
+Diving into this in a bit more detail, we can distinguish between
+disaster types. For some, like tornados or severe ice storms, the
+approved amounts exceed the spent amounts far more compared to others
+like earthquakes or floods where the two amounts are much more equal.
 
 ```{r}
 boxplot.repair.df <- data.frame(ApprovedLog = log(df.prep.5$Approved),
@@ -488,52 +505,18 @@ b.rep+
 #           ncol = 1, nrow = 2)
 ```
 
-### Frequency of Disaster Types by Country
+### Shiny Dashboard for EDA
 
-```{r, include=FALSE}
-DF2 <- df.prep.5 %>%
-   select(County, Longitude, Latitude, State)
+The Shiny-Dashboard provides an interactive possibility to further
+inspect aspects of the natural disasters and where they occur.
+[https://](https://milicapajkic.shinyapps.io/Dashboard/)[milicapajkic](https://milicapajkic.shinyapps.io/Dashboard/ "Dashboard")[.shinyapps.io/](https://milicapajkic.shinyapps.io/Dashboard/)[Dashboard](https://milicapajkic.shinyapps.io/Dashboard/ "Dashboard")[/](https://milicapajkic.shinyapps.io/Dashboard/)
 
-df.group.county <- df.prep.5 %>% 
-  group_by(County, State, Type) %>% 
-  summarize(number_sightings = n())
+![Duration of Disaster Type by State and
+County](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.40.15.png)
 
-df.county.2 <- left_join(df.group.county, DF2, by = c("County", "State")) %>%
-  rename(state = State)
+![](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.41.09-01.png)
 
-df.county.2 <- df.county.2[!duplicated(df.county.2), ]
-
-#write.csv(df.group.county, "df.group.states.csv")
-
-library(usmap)
-library(ggplot2)
-
-plot_usmap(regions = "counties") + 
-  labs(title = "US Counties",
-       subtitle = "This is a blank map of the counties of the United States.") + 
-  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
-```
-
-```{r, include=FALSE}
-plot_usmap(data = df.county.2, values = "number_sightings", color = "red") + 
-  scale_fill_continuous(
-    low = "white", high = "red", name = "Number of Sightings", label = scales::comma
-  ) + theme(legend.position = "right")
-```
-
-```{r MUSS NOCH ANGESCHAUT WERDEN, include=FALSE}
-# plot_usmap(data = df.county.2, values = "number_sightings", color = "red") + 
-#   scale_fill_continuous(
-#     low = "blue", high = "red", name = "Number of Sightings", label = scales::comma
-#   ) + theme(legend.position = "right") +
-#   facet_wrap(~ Type, ncol = 2)
-# 
-# plot_usmap(data = df.county.2, values = "number_sightings", color = "red", include = c("all")) + 
-#   scale_fill_continuous(
-#     low = "blue", high = "red", name = "Number of Sightings", label = scales::comma
-#   ) + theme(legend.position = "right") +
-#   facet_wrap(~ Type, ncol = 2)
-```
+![Heatmap](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.43.37.png)
 
 ## Model
 
@@ -921,13 +904,13 @@ in the past few years. Therefore, I suggest we would need to get
 additional data to confirm that this is a long-lasting drop which we
 could base the forecast on.
 
-<<<<<<< HEAD
-PS: Just to try it out, I fitted an AR(1) model on the data as a whole and predicted the next 100 data points which resulted in non-nonsensical horizontal line:
-=======
+**PS: Just to try it out, I fitted an AR(1) model on the data as a whole
+and predicted the next 100 data points which resulted in non-nonsensical
+horizontal line:**
+
 PS: Just to try it out, I fitted an AR(1) model on the data as a whole
 and forecasted the next 100 data points which resulted in
 non-nonsensical horizontal line:
->>>>>>> 5878fc1e75cb167a4e0e9cbd1e59e69758079fad
 
 ```{r}
 f_fit <- arima(frequency_tszoo, order = c(1,0,0))
@@ -942,5 +925,20 @@ lines(forecast$pred, lwd = 2, col = "red")
 
 ## Summary & Conclusion
 
-In this project, we focused on exploratory data analysis and different ways of displaying data. As it is often the case for amounts, count data, etc., our variables like amount of money tended to be right skewed which is why we mostly worked with log-transformed data. The long-transformation helps for example to generate figures that are easier to interpret in terms of detecting differences. However, the caveat is that the "real numbers" cannot be directly read from the graph. Furthermore, the log transformation "shifts" right-skewed data into a more gaussian distribution which is important when the goal is to use statistical analysis methods or machine learning models since most of the methods assume an underlying Gaussian distribution of the data. 
-To generate plots, we quickly started to like the ggplot package. The explanation in the block seminar that ggplot uses a layered approach was very helpful and made using it and starting to play around much more easy and fun. Also the session on R Markdown was incredibly helpful and overall, we are taking a lot of great tips and tricks with us that will for sure make our daily coding life more enjoyable :-)
+In this project, we focused on exploratory data analysis and different
+ways of displaying data. As it is often the case for amounts, count
+data, etc., our variables like amount of money tended to be right skewed
+which is why we mostly worked with log-transformed data. The
+long-transformation helps for example to generate figures that are
+easier to interpret in terms of detecting differences. However, the
+caveat is that the "real numbers" cannot be directly read from the
+graph. Furthermore, the log transformation "shifts" right-skewed data
+into a more gaussian distribution which is important when the goal is to
+use statistical analysis methods or machine learning models since most
+of the methods assume an underlying Gaussian distribution of the data.
+To generate plots, we quickly started to like the ggplot package. The
+explanation in the block seminar that ggplot uses a layered approach was
+very helpful and made using it and starting to play around much more
+easy and fun. Also the session on R Markdown was incredibly helpful and
+overall, we are taking a lot of great tips and tricks with us that will
+for sure make our daily coding life more enjoyable :-)
