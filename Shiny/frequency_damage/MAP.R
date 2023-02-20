@@ -4,6 +4,7 @@ library(dplyr)
 library(leaflet)
 library(leaflet.extras)
 library(maps)
+library(scales)
 
 # Read in the data
 df <- read.csv("df_prep_5.csv")
@@ -32,7 +33,6 @@ ui <- fluidPage(
   plotOutput("plot")
 )
 
-# Define server
 server <- function(input, output) {
   
   # Create reactive data for selected variable
@@ -49,19 +49,6 @@ server <- function(input, output) {
       addLegend(pal = colorNumeric(palette = "YlOrRd", domain = filteredData()[[2]]), 
                 values = filteredData()[[2]], position = "bottomright")
   })
-  
-  # Create the choropleth map with damage data
-  output$plot <- renderPlot({
-    ggplot() +
-      geom_polygon(data = map_dam, mapping = aes(x = long, y = lat, group = group, fill = total_damage)) +
-      labs(x = 'Longitude', y = 'Latitude', fill = '$ damage') +
-      coord_quickmap() +
-      scale_fill_gradient(limits = c(min(map_dam$total_damage), max(map_dam$total_damage)),
-                          breaks = c(min(map_dam$total_damage), max(map_dam$total_damage)),
-                          labels = c("Low", "High"), na.value = "grey50")
-  })
-  
 }
 
-# Run the app
 shinyApp(ui, server)
