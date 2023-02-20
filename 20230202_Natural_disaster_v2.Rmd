@@ -183,6 +183,8 @@ colnames(df.prep.5) <- c("Disaster#", "Type", "County", "State", "Latitude",
                                 "Longitude", "Damage", "Approved",
                                 "Repair", "Population", "IncomeCapita", "DisasterBegin",
                                 "DisasterEnd", "Duration")
+write.csv(df.prep.5, file = "/Users/milicapajkic/Documents/GitHub/R-bootcamp-Projekt/Shiny/frequency_damage/df_prep_5.csv", row.names = FALSE)
+
 ```
 
 After merging and cleaning the data from the four sources, our final
@@ -825,8 +827,19 @@ plot(cc,cex = 0.3, hang = -1)
 
 ## Chapter of choice (Martina)
 
-To make up for the time I missed during the block week on Monday afternoon, I was given the task to produce an additional chapter of choice with a R package that hasn't been used before. Since we have date values in our data set, I thought it would be interesting to try and show a forecast. I started by generating a new dataframe containing the frequency with which "severe storms" happened per month between 2002 and 2023. Since (luckily!) there wasn't such a disaster happening every month, I complemented the data frame by adding every month in the given time period and fill in "0" if there was no event in that month. To generate the time series plot, I loaded the packages "forecast" and also "zoo", because for some reason, R converted the date column into a different index before using it as index for the x-axis. The zoo package allowed to specify the original date column as index for the x-axis. 
-
+To make up for the time I missed during the block week on Monday
+afternoon, I was given the task to produce an additional chapter of
+choice with a R package that hasn't been used before. Since we have date
+values in our data set, I thought it would be interesting to try and
+show a forecast. I started by generating a new dataframe containing the
+frequency with which "severe storms" happened per month between 2002 and
+2023. Since (luckily!) there wasn't such a disaster happening every
+month, I complemented the data frame by adding every month in the given
+time period and fill in "0" if there was no event in that month. To
+generate the time series plot, I loaded the packages "forecast" and also
+"zoo", because for some reason, R converted the date column into a
+different index before using it as index for the x-axis. The zoo package
+allowed to specify the original date column as index for the x-axis.
 
 ```{r}
 
@@ -873,14 +886,21 @@ frequency_tszoo <- zoo(dates_merged$frequency, order.by = dates_merged$date)
 plot(frequency_tszoo, type = "l", xlab = "Date", ylab = "Frequency", main = "Frequency of severe storms / month")
 ```
 
-The time series plot indicates that there is a trend to decreasing frequency of severe storms in later years but no seasonal component can be clearly identified. Trying to decompose the data anyway was therefore not successful and resulted in the error message that the time series is not periodic or has less than two periods. 
+The time series plot indicates that there is a trend to decreasing
+frequency of severe storms in later years but no seasonal component can
+be clearly identified. Trying to decompose the data anyway was therefore
+not successful and resulted in the error message that the time series is
+not periodic or has less than two periods.
 
 ```{r}
 #stl <- stl(frequency_tszoo, na.action = "omit", s.window = 12)
 ```
 
-In another try, I wanted to look at the autocorrelation and partial autocorrelation functions to get an indication if it could make sense to fit a linear model like an Auto-Regressive model on the data for the forecast. 
-The acf resulted in the following plot whereas the pacf resulted in an error message that the maximal lag must be at least one. 
+In another try, I wanted to look at the autocorrelation and partial
+autocorrelation functions to get an indication if it could make sense to
+fit a linear model like an Auto-Regressive model on the data for the
+forecast. The acf resulted in the following plot whereas the pacf
+resulted in an error message that the maximal lag must be at least one.
 
 ```{r}
 
@@ -895,9 +915,19 @@ acf(frequency_tszoo, na.action = na.pass)
 
 ```
 
-By looking at the time series plot, I would also suggest that it's quite hard to do an accurate forecast since the frequency dropped considerably in the past few years. Therefore, I suggest we would need to get additional data to confirm that this is a long-lasting drop which we could base the forecast on. 
+By looking at the time series plot, I would also suggest that it's quite
+hard to do an accurate forecast since the frequency dropped considerably
+in the past few years. Therefore, I suggest we would need to get
+additional data to confirm that this is a long-lasting drop which we
+could base the forecast on.
 
+<<<<<<< HEAD
 PS: Just to try it out, I fitted an AR(1) model on the data as a whole and predicted the next 100 data points which resulted in non-nonsensical horizontal line:
+=======
+PS: Just to try it out, I fitted an AR(1) model on the data as a whole
+and forecasted the next 100 data points which resulted in
+non-nonsensical horizontal line:
+>>>>>>> 5878fc1e75cb167a4e0e9cbd1e59e69758079fad
 
 ```{r}
 f_fit <- arima(frequency_tszoo, order = c(1,0,0))
