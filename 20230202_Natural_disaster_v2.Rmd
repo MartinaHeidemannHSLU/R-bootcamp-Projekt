@@ -520,47 +520,6 @@ County](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.40.15.png)
 
 ## Model
 
-The goal of this model fitting chapter is to see if the linear
-regression is appropriate tool to predict/explain the damage amount and
-state.
-
-The sum of the damage across one state shows a light right skewedness.
-Therefore, we performed a log transformation. Now it is more of a normal
-distribution.
-
-```{r, include=FALSE}
-df.group.damage <- df.prep.5 %>%
-  group_by(State) %>% 
-  summarise(across(c(Damage, IncomeCapita, Duration, Population), sum, na.rm = TRUE))
-```
-
-```{r, include=FALSE}
-ggplot(data = df.group.damage, 
-       mapping = aes(x = Damage, fill = '')) +
-  geom_histogram(show.legend = FALSE)+
-  labs(x = 'Damage', y = 'Count') +
-  scale_fill_manual(values = c('salmon4')) +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=18,face="bold"))
-```
-
-```{r, include=FALSE}
-ggplot(data = df.group.damage, 
-       mapping = aes(x = log(Damage), fill = '')) +
-  geom_histogram(show.legend = FALSE)+
-  labs(x = 'Damage (log)', y = 'Count') +
-  scale_fill_manual(values = c('mistyrose3'))+
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=18,face="bold"))
-```
-
-```{r, include=FALSE}
-model <- lm(Damage ~ Population + State, data = df.group.damage)
-summary(model)
-```
-
-## Model 2
-
 In this Chapter we want to see, if the amount of Damage can be predicted
 with the given data points.
 
@@ -583,6 +542,8 @@ income per capita and damage.
 To see if the chosen variables have an influence on damage a testing was
 done (*drop1*). The model.full indicates that only log.income, Type and
 Duration have relevant effects on the dependent variable damage.
+
+### Inspection 
 
 ```{r, echo=FALSE}
 ggplot(data = df.prep.5, 
@@ -623,7 +584,7 @@ ggplot(df.prep.5, aes(log(IncomeCapita),log(Damage))) +
   geom_smooth(method = "lm", se = FALSE)
 ```
 
-### Linear Regression {.tabset}
+### Linear Regression 
 
 ```{r}
 df.model <- df.prep.5
@@ -695,16 +656,12 @@ abline(model, col = "red4")
 
 ## Chapter of choice
 
-For the chapter of choice we have chosen the shiny dashboard
-application. The focus lies on the exploratory analysis and to make it
-interactive for users. \@ MARTINA: in the folder shiny there are the
-first tries
-
-For every analysis some kind of outlier detection is a way to see if the
-data has some structure. The way this works, multiple variables are
-given and from these groups are being formed. The goal is to have big
-differences between the formed groups. However, within group difference
-should be small.
+For every analysis some kind of outlier detection is a way to see what
+kind of structure the data has. To achieve this goal, we are using the
+k-nearest method. The way this works, multiple variables are given and
+from these groups are being formed. The goal is to have big differences
+between the formed groups. However, within group difference should be
+small.
 
 ```{r}
 #Dataframe
@@ -776,7 +733,10 @@ plot(datas, pch = groups_km2, col=groups_km2, lwd=2)
 legend("topright", legend = 1:2, pch = 1:2, col=1:2, bty="n")
 ```
 
-```{r, fig.align = "left", fig.asp =  2.5, fig.width = 7, include=FALSE}
+Three clusters achieve a 0.93 width. When compared to the below
+silhouette plot, it performs better.
+
+```{r, fig.align = "left", fig.asp =  2.5, fig.width = 7}
 plot(silhouette(groups_km, dists), color='red3', main = "")
 
 ```
@@ -796,13 +756,15 @@ plot(datas, pch = groups_km5, col=groups_km5, lwd=2)
 legend("topright", legend = 1:5, pch = 1:5, col=1:5, bty="n")
 ```
 
-```{r}
+The silhouette plot implies, that the clustering is done moderately good
+for 5 clusters.
+
+```{r, fig.align = "left", fig.asp =  1.3, fig.width = 7}
 plot(silhouette(groups_km5, dists))
 ```
 
-```{r, fig.align = "left", fig.asp =  1.2, fig.width = 7, include=FALSE}
+```{r, fig.align = "left", fig.asp =  1.2, fig.width = 7}
 dc <- dist(datas, method = "euclidean")
-dc
 
 cc <- hclust(dc, method = "complete")
 plot(cc,cex = 0.3, hang = -1)
