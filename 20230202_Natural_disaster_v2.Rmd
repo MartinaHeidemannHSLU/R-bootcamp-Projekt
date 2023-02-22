@@ -376,11 +376,11 @@ ggplot() +
 ### Actual Damage vs. approved amount
 
 How much does the estimated damage and the approved amount differ? As
-before, we worked with log-transformed data.By displaying overlapping
+before, we worked with log-transformed data. By displaying overlapping
 histograms, we can conclude that there are a few instances where the
 approved amount is a lot lower compared to the damage that actually
 happened. Vice versa, there are instances where the approved amount
-exeeded the actual damage.
+exceded the actual damage.
 
 ```{r EDA Damage vs. approved data, include=FALSE}
 hist.df <- data.frame(Damage = df.prep.5$Damage,
@@ -511,12 +511,24 @@ The Shiny-Dashboard provides an interactive possibility to further
 inspect aspects of the natural disasters and where they occur.
 [https://](https://milicapajkic.shinyapps.io/Dashboard/)[milicapajkic](https://milicapajkic.shinyapps.io/Dashboard/ "Dashboard")[.shinyapps.io/](https://milicapajkic.shinyapps.io/Dashboard/)[Dashboard](https://milicapajkic.shinyapps.io/Dashboard/ "Dashboard")[/](https://milicapajkic.shinyapps.io/Dashboard/)
 
-![Duration of Disaster Type by State and
-County](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.40.15.png)
+This dashboard is helpful to interactively explore, which disaster has
+occured in which state resp. county. The disaster type needs to be set
+first and only the states and their counties, in which these disasters
+occured, are "clickable". For example, if the insight we are looking for
+is tornado, we can see, that these disaster types only occured in 13
+States and dominantely in the Southern (e.g. Georgia) or Midwestern
+states.
+
+![Duration of Disaster Type by State and County. The data used for this
+plot is not really suitable for a heatmap but for learning purposes we
+wanted to try it out. The reason being, that not only counties are
+included in the dataframe, because not everyone was included in the
+FEMA. Therefore, our income per capita and population was also reduced.
+](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.40.15.png)
 
 ![](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.41.09-01.png)
 
-![Heatmap](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.43.37.png)
+![](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.43.37.png)
 
 ## Model
 
@@ -543,7 +555,12 @@ To see if the chosen variables have an influence on damage a testing was
 done (*drop1*). The model.full indicates that only log.income, Type and
 Duration have relevant effects on the dependent variable damage.
 
-### Inspection 
+### Inspection
+
+As seen in the previous chapter, damage and income per capita needs to
+be log-transformed. The scatter plot before logarithmizing the data is
+very one sided. When using the logarithmized data the output and linear
+regression plot shows a slight positive relationship.
 
 ```{r, echo=FALSE}
 ggplot(data = df.prep.5, 
@@ -552,7 +569,9 @@ ggplot(data = df.prep.5,
   labs(x = 'Damage (log)', y = 'Count') +
   scale_fill_manual(values = c('mistyrose3'))+
   theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=18,face="bold"))
+        axis.title=element_text(size=18,face="bold"))+
+  ggtitle("Histogram of Damage") +
+  theme(plot.title = element_text(size = 20, face = "bold"))
 ```
 
 ```{r}
@@ -562,7 +581,9 @@ ggplot(data = df.prep.5,
   labs(x = 'Income', y = 'Count') +
   scale_fill_manual(values = c('lightblue2'))+
   theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=18,face="bold"))
+        axis.title=element_text(size=18,face="bold"))+
+  ggtitle("Histogram of Income per Capita") +
+  theme(plot.title = element_text(size = 20, face = "bold"))
 ```
 
 ```{r}
@@ -572,22 +593,34 @@ ggplot(data = df.prep.5,
   labs(x = 'log. Income', y = 'Count') +
   scale_fill_manual(values = c('mistyrose3'))+
   theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=18,face="bold"))
+        axis.title=element_text(size=18,face="bold"))+ 
+  ggtitle("Histogram of Income per Capita (log)") +
+  theme(plot.title = element_text(size = 20, face = "bold"))
 ```
 
 ```{r}
-plot(df.prep.5$Damage, df.prep.5$IncomeCapita)
-plot(log(df.prep.5$Damage), log(df.prep.5$IncomeCapita))
+plot(df.prep.5$IncomeCapita, df.prep.5$Damage, 
+     main = "Scatter Plot of Damage and Income per Capita",
+     xlab = "Income per Capita", ylab = "Damage")
+plot(log(df.prep.5$IncomeCapita), log(df.prep.5$Damage), 
+     main = "Scatter Plot of Logarithmic Damage and Logarithmic Income per Capita",
+     xlab = "Logarithmic Income per Capita", ylab = "Logarithmic Damage")
 
-ggplot(df.prep.5, aes(log(IncomeCapita),log(Damage))) +
+ggplot(df.prep.5, aes(log(Damage),log(IncomeCapita))) +
   geom_point() +
-  geom_smooth(method = "lm", se = FALSE)
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = 'log. Income', y = 'log. Damage')+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=18,face="bold"))+ 
+  ggtitle("Scatter Plot: Damage (log) against Income per Capita (log)") +
+  theme(plot.title = element_text(size = 20, face = "bold"))
 ```
 
-### Linear Regression 
+### Linear Regression
 
 ```{r}
 df.model <- df.prep.5
+df.model$Type <- relevel(df.model$Type, ref = "Dam/Levee Break")
 df.model$log.damage <- log(df.model$Damage)
 df.model$log.income <- log(df.model$IncomeCapita)
 # 
@@ -604,30 +637,70 @@ In this model we are fitting all the variables and are afterwards
 implementing drop1 to see, which variable has a significant influence on
 the dependent variable. After this, we are dropping the variables with
 no significant influence on the variable damage. The final model
-includes income, type of disaster and the duration.
+includes income per capita, type of disaster and the duration.
 
-```{r, collapse = TRUE}
+```{r}
 model.full <- lm(log.damage ~ log.income + State+ Type+ Population+ Duration, data = na.omit(df.model))
 summary(model.full)
 ```
 
+Income per Capita (log) has a significant effect on damage, as well as
+the type of disaster. The independent variable Duration has a small
+effect, however, we will be including it into the final model. In a next
+step, the different levels of the variable Type will be tested against
+eachother to see if they differ significantly (their mean) from each
+other. As can be seen, no pairing implies any significant difference.
+
 ```{r}
 drop1(model.full, test = 'F')
 ```
+
+#### Testing the levels against each other
+
+```{r, collapse=TRUE}
+tukey.test <- TukeyHSD(aov(model.full), "Type")
+tukey.test
+```
+
+```{r}
+plot(tukey.test)
+
+```
+
+This model with only the variables that have an effect on the dependent
+variable, the output provides a different picture. Income per capita is
+not significant resp. very low significant (p \< 0.1). If income per
+capita increases by one percent, damage increase by about 0.84%. When
+looking the the disaster type, the reference level is set at "Dam/Levee
+Break" and only "Volcanic Eruption" is significant. But it will not be
+further discussed, because this type of disaster is rare. Only 12% of
+the dependent variable variance can be explained by the three variables.
+The model is very poorly at explaining.
 
 ```{r}
 model.right <- lm(log.damage ~ log.income +  Type+ Duration, data = na.omit(df.model))
 summary(model.right)
 ```
 
+```{r, collapse= FALSE}
+exp(coef(model.right)["log.income"])
+(exp(coef(model.right)["TypeVolcanic Eruption"]) - 1) * 100
+```
+
 ### Fitted Values
 
-```{r}
+Fitted values are good at indicating how good the model is (goodness of
+fit). They are the values of y that the model predicts for each
+observation in out data based on the independent variable (here: Income
+per capita) and the estimated regression coefficients. The fitted values
+are centered at the middle.
+
+```{r, include = FALSE}
 fitted.model <- fitted(model)
 str(fitted.model)
-plot(log.damage ~ log.income, data = df.model,
-     main = "Model 'model'",
-     col = "pink4")
+# plot(log.damage ~ log.income, data = df.model,
+#      main = "Model 'model'",
+#      col = "pink4")
 # points(fitted.model ~ log.income,
 #        col = "lightblue4",
 #        pch = 19,
@@ -636,29 +709,34 @@ plot(log.damage ~ log.income, data = df.model,
 ```
 
 ```{r}
+library(car)
 df.sub <- df.model[which(!is.na(fitted.model)), ]
 # Create plot with both observed and fitted values
 plot(log.damage ~ log.income, data = df.sub,
-     main = "Model 'model'",
+     main = "Model 'Log. Damage and Log. Income'",
      col = "pink4")
 points(fitted.model ~ log.income,
        col = "lightblue4",
        pch = 19,
        data = df.sub)
 abline(model, col = "red4")
-# df.plot <- data.frame(log.damage = df.model$log.damage, log.income = df.model$log.income, fitted = fitted.model)
-# 
-# # Plot the observed and fitted values
-# plot(log.damage ~ log.income, data = df.plot, main = "Model 'model'", col = "pink4")
-# points(fitted ~ log.income, data = df.plot, col = "lightblue4", pch = 19)
-# abline(model, col = "red4")
+legend("topright", 
+       legend = c("Observed data", "Fitted values", "Model"),
+       col = c("pink4", "lightblue4", "red4"), 
+       pch = c(1, 19, NA), 
+       lty = c(NA, NA, 1))
+
 ```
+
+All in all, we can see that the model is poorly explaining the response
+variable damage. Maybe one should consider more biological variables,
+such as wind storms, to predict this response variable.
 
 ## Chapter of choice
 
 For every analysis some kind of outlier detection is a way to see what
 kind of structure the data has. To achieve this goal, we are using the
-k-nearest method. The way this works, multiple variables are given and
+k-means method. The way this works, multiple variables are given and
 from these groups are being formed. The goal is to have big differences
 between the formed groups. However, within group difference should be
 small.
