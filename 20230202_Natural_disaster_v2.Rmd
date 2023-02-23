@@ -240,7 +240,8 @@ ts.dataframe <- data.frame(DisasterN = df.prep.5$`Disaster#`,
 
 ggplot(ts.dataframe, aes(x = Begin, xend = End, y = Type, yend = Type)) +
   geom_segment(size = 5, color = "cyan3") +
-  labs(x = 'Time', y = 'Disaster Type')
+  labs(x = 'Time', y = 'Disaster Type')+
+  ggtitle("Natural Disaster Types over Time")
 
 ```
 
@@ -261,7 +262,8 @@ tornados.
 ggplot(df.prep.5, mapping = aes(x = Type, y = Duration)) +
   geom_boxplot(color = "hotpink4", fill = "hotpink3", alpha = 0.5) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(x = "", y = "Duration")
+  labs(x = "", y = "Duration")+
+  ggtitle("The Duration of every Natural Disaster Type")
 
 ```
 
@@ -279,7 +281,8 @@ ggplot(data = df.prep.5,
   scale_x_continuous(limits = c(0, 12000)) +
   scale_y_continuous(limits = c(0, 20)) +
   scale_fill_manual(values = c('cyan4')) +
-  theme_minimal()
+  theme_minimal()+
+  ggtitle("Distribution of Damage")
 
 ```
 
@@ -293,7 +296,8 @@ ggplot(data = df.prep.5,
   geom_histogram(show.legend = FALSE) +
   labs(x = 'Damage (log)', y = 'Count') +
   scale_fill_manual(values = c('deepskyblue4')) +
-  theme_minimal()
+  theme_minimal()+
+  ggtitle("Distribution of Damage (log)")
 ```
 
 With the transformed data, we could generate a plot showing the damage
@@ -346,9 +350,9 @@ invisible({
     labs(title='Log. Damage in the USA',
       caption='Source: FEMA.')
 
-  htmlwidgets::saveWidget(ggiraph(code=print(g)), "my_plot.html")
+  gp <- htmlwidgets::saveWidget(ggiraph(code=print(g)), "my_plot.html")
 })
-
+gp
 ```
 
 ### Population per state
@@ -369,7 +373,8 @@ map_pop$population2 <- log(map_pop$population)
 ggplot() +
   geom_polygon(map_pop, mapping = aes(x = long, y = lat, group = group, fill = population2)) +
   labs(x = 'Longitude', y = 'Latitude', fill = 'Population') +
-  coord_quickmap()
+  coord_quickmap()+
+  ggtitle("Population in the US")
 
 ```
 
@@ -390,7 +395,8 @@ hist.df %>%
       ggplot(aes(x = value, fill = name)) +
       geom_histogram(position = "identity", alpha = 0.5) +
      scale_x_continuous(limits = c(0, 300000)) +
-     scale_y_continuous(limits = c(0, 70))
+     scale_y_continuous(limits = c(0, 70))+
+  ggtitle("Distribution of Damage and Approved")
 ```
 
 ```{r histo damage vs. approved, echo=FALSE}
@@ -399,7 +405,8 @@ hist.app.log.df <- data.frame(Damage = log(df.prep.5$Damage),
 hist.app.log.df %>% 
       pivot_longer(everything()) %>%
       ggplot(aes(x = value, fill = name)) +
-      geom_histogram(position = "identity", alpha = 0.5)
+      geom_histogram(position = "identity", alpha = 0.5)+
+  ggtitle("Distribution of Damage and Approved (log)")
 ```
 
 ```{r boxplot damage vs. approved, echo=FALSE}
@@ -454,7 +461,8 @@ summary(repair.short.df)
       ggplot(aes(x = value, fill = name)) +
       geom_histogram(position = "identity", alpha = 0.5) +
      scale_x_continuous(limits = c(0, 300000)) +
-     scale_y_continuous(limits = c(0, 70))
+     scale_y_continuous(limits = c(0, 70))+
+  ggtitle("Distribution of Approved and Used")
 ```
 
 ```{r log histo, approved + used, echo=FALSE}
@@ -463,7 +471,8 @@ repair.log.df <- data.frame(Approved = log(df.prep.5$Approved),
 repair.log.df %>% 
       pivot_longer(everything()) %>%
       ggplot(aes(x = value, fill = name)) +
-      geom_histogram(position = "identity", alpha = 0.5)
+      geom_histogram(position = "identity", alpha = 0.5)+
+  ggtitle("Distribution of Approved and Used (log)")
 ```
 
 Diving into this in a bit more detail, we can distinguish between
@@ -523,8 +532,8 @@ states.
 plot is not really suitable for a heatmap but for learning purposes we
 wanted to try it out. The reason being, that not only counties are
 included in the dataframe, because not everyone was included in the
-FEMA. Therefore, our income per capita and population was also reduced.
-](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.40.15.png)
+FEMA. Therefore, our income per capita and population was also
+reduced.](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.40.15.png)
 
 ![](images/Bildschirm%C2%ADfoto%202023-02-20%20um%2023.41.09-01.png)
 
@@ -751,7 +760,10 @@ df.outlier.0 <- data.frame(Approved = df.prep.5$Approved,
 
 df.outlier.1 <- data.frame(repair = df.outlier.0$Repair,
                            income = df.outlier.0$income)
-plot(df.outlier.1)
+plot(df.outlier.1, 
+     main = "Scatter Plot Income and Repair", 
+     xlab = "Repair", 
+     ylab = "Income per capita")
 ```
 
 ### Clustering the two variables income and repair
@@ -765,27 +777,33 @@ indication that two clusters are the better solution. This means
 #prep the data
 datas <- scale(df.outlier.1, center = FALSE, scale = TRUE)
 datas <- na.omit(datas)
-boxplot(datas)
+boxplot(datas, 
+     main = "Boxplot of Scaled Data")
 ```
 
 ```{r}
-plot(datas)
+plot(datas, 
+     main = "Scatter Plot Income and Repair, \nScaled Data", 
+     xlab = "Repair", 
+     ylab = "Income per capita")
 
 dists <- dist(datas)
 ```
 
-```{r}
+```{r, include=FALSE}
 km <- kmeans(datas, centers = 3, nstart = 10)
 groups_km <- km$cluster
 groups_km
+```
 
+```{r, include=FALSE}
 cluster_size <- cbind(sum(groups_km == 1), sum(groups_km == 2), 
                       sum(groups_km == 3))
 cluster_size
 ```
 
 ```{r}
-plot(datas, pch = groups_km, col=groups_km, lwd=2)
+plot(datas, pch = groups_km, col=groups_km, lwd=2, main="Clustered Data with three Groups")
 legend("topright", legend = 1:3, pch = 1:3, col=1:3, bty="n")
 ```
 
@@ -797,7 +815,7 @@ plot(1:6, reps, type = "b", xlab = "Number of groups", ylab = "Sum of squares")
 text(3, 120, "Elbow point signifies how many \ngroups there could be", col = "red", cex = 1.08, pos = 4)
 ```
 
-```{r}
+```{r, collapse = TRUE}
 km2 <- kmeans(datas, centers = 2, nstart = 10)
 groups_km2 <- km2$cluster
 groups_km2
@@ -807,7 +825,7 @@ cluster_size2
 ```
 
 ```{r}
-plot(datas, pch = groups_km2, col=groups_km2, lwd=2)
+plot(datas, pch = groups_km2, col=groups_km2, lwd=2, main="Clustered Data with two Groups")
 legend("topright", legend = 1:2, pch = 1:2, col=1:2, bty="n")
 ```
 
@@ -819,7 +837,7 @@ plot(silhouette(groups_km, dists), color='red3', main = "")
 
 ```
 
-```{r}
+```{r, include=FALSE}
 km5 <- kmeans(datas, centers = 5, nstart = 10)
 groups_km5 <- km5$cluster
 groups_km5
@@ -829,13 +847,19 @@ cluster_size5 <- cbind(sum(groups_km5 == 1), sum(groups_km5 == 2),
 cluster_size5
 ```
 
+The plot shows us the visualization of the 5 groups. It does not have a
+good separation. The first two (2 and 5) clusters could be low income
+and high income. However, the other three do not contain a lot of points
+to be interpreted. Therefore, we will not be going more into depth.
+
 ```{r}
-plot(datas, pch = groups_km5, col=groups_km5, lwd=2)
+plot(datas, pch = groups_km5, col=groups_km5, lwd=2, main="Clustered Data with five Groups")
 legend("topright", legend = 1:5, pch = 1:5, col=1:5, bty="n")
 ```
 
 The silhouette plot implies, that the clustering is done moderately good
-for 5 clusters.
+for 5 clusters. Note: The plot did not work with the previous set figure
+setting, therefore, the plot has been made bigger.
 
 ```{r, fig.align = "left", fig.asp =  1.3, fig.width = 7}
 plot(silhouette(groups_km5, dists))
